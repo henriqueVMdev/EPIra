@@ -1,2 +1,2 @@
 # EPIra
-Trabalho integrador
+Projeto integrador
