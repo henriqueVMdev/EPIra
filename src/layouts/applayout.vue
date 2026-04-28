@@ -44,3 +44,13 @@
     </main>
   </div>
 </template>
+
+<script>
+export default {
+  methods: {
+    sair() {
+        this.$router.push('/login');
+    }
+  }
+}
+</script>
