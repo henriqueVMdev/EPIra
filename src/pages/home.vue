@@ -8,6 +8,7 @@
         <a href="#">Suporte</a>
       </div>
       <button class="btn-login">Login</button>
+      <li><RouterLink to="/login" class="navbar__link">Login</RouterLink></li>
     </nav>
 
     <section class="hero">
