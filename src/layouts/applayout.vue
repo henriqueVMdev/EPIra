@@ -1,10 +1,14 @@
 <template>
   <div class="shell">
     <aside class="sidebar">
+      <h1 class="logo">
+        <i class="fas fa-shield-alt"></i>
+        EPIra
+      </h1>
       <nav class="menu">
         <RouterLink to="/applayout/funcionarios" class="menu-item" active-class="active">
           <i class="fas fa-users"></i>
-          <span>Funcionários</span>
+          <span>Cadastro de Funcionários</span>
         </RouterLink>
 
         <RouterLink to="/applayout/cadastro" class="menu-item" active-class="active">
@@ -12,9 +16,9 @@
           <span>Cadastro de EPIs</span>
         </RouterLink>
 
-        <RouterLink to="/applayout/movimentacao" class="menu-item" active-class="active">
-          <i class="fas fa-chart-bar"></i>
-          <span>Entregas</span>
+        <RouterLink to="/applayout/entregas" class="menu-item" active-class="active">
+            <i class="fas fa-truck"></i>
+            <span>Entregas</span>
         </RouterLink>
 
         <RouterLink to="/applayout/relatorios" class="menu-item" active-class="active">
@@ -36,15 +40,10 @@
 
 <script setup>
 
-import { useRouter } from "vue-router";
 import { RouterLink, RouterView } from "vue-router";
-
-const router = useRouter();
-router.push("/login"); 
 </script>
 
 <style scoped>
-
 * {
   margin: 0;
   padding: 0;
@@ -58,7 +57,7 @@ router.push("/login");
 }
 
 .sidebar {
-  width: 387px;
+  width: 300px;
   background-color: #1e3a5f;
   color: #ffffff;
   padding: 30px 20px;
@@ -115,9 +114,9 @@ router.push("/login");
 
 .menu-item.active {
   background: #fff4ed;                                                            
-  color: #f97316; 
+  color: #12417e; 
   font-weight: 600;
-  border-left: 4px solid #f97316;
+  border-left: 4px solid #1e3a5f;
   padding-left: 16px;
 }
 
@@ -145,7 +144,7 @@ router.push("/login");
 }
 
 .botao-sair:hover {
-  background-color: #f97316;
+  background-color: #12417e;
 }
 
 .botao-sair:active {

@@ -10,11 +10,17 @@ import applayout from '../layouts/applayout.vue'
 const routes = [
   { path: '/', component: home },
   { path: '/login', component: login },
-  { path: '/funcionarios', component: funcionarios },
-  { path: '/cadastro', component: cadastro },
-  { path: '/entregas', component: entregas },
-  { path: '/relatorios', component: relatorios }
-        ]
+  {
+    path: '/applayout',
+    component: applayout,
+    children: [
+      { path: 'funcionarios', component: funcionarios },
+      { path: 'cadastro', component: cadastro },
+      { path: 'entregas', component: entregas },
+      { path: 'relatorios', component: relatorios }
+    ]
+  }     
+]
 
 const router = createRouter({
   history: createWebHistory(),
