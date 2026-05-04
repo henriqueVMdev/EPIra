@@ -18,7 +18,7 @@
 
         <RouterLink to="/applayout/entregas" class="menu-item" active-class="active">
             <i class="fas fa-truck"></i>
-            <span>Entregas</span>
+            <span>Entregas/Devoluções</span>
         </RouterLink>
 
         <RouterLink to="/applayout/relatorios" class="menu-item" active-class="active">
@@ -53,7 +53,7 @@ import { RouterLink, RouterView } from "vue-router";
 .shell {
   display: flex;
   height: 100vh;
-  background-color: #ffffff;
+  background-color: #0c0808;
 }
 
 .sidebar {
