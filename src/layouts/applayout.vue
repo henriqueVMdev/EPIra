@@ -8,7 +8,7 @@
       <nav class="menu">
         <RouterLink to="/applayout/funcionarios" class="menu-item" active-class="active">
           <i class="fas fa-users"></i>
-          <span>Cadastro de Funcionários</span>
+          <span>Cadastro Funcionários</span>
         </RouterLink>
 
         <RouterLink to="/applayout/cadastro" class="menu-item" active-class="active">
@@ -53,13 +53,13 @@ import { RouterLink, RouterView } from "vue-router";
 .shell {
   display: flex;
   height: 100vh;
-  background-color: #0c0808;
+  background-color: #000000;
 }
 
 .sidebar {
   width: 300px;
-  background-color: #1e3a5f;
-  color: #ffffff;
+  background-color: #020617;
+  color: #141a4c;
   padding: 30px 20px;
   display: flex;
   flex-direction: column;
@@ -109,12 +109,12 @@ import { RouterLink, RouterView } from "vue-router";
 }
 
 .menu-item:hover {
-  background-color: #020108;   
+  background-color: #141a4c;   
 }
 
 .menu-item.active {
-  background: #fff4ed;                                                            
-  color: #12417e; 
+  background: #141a4c;                                                            
+  color: #8eabff; 
   font-weight: 600;
   border-left: 4px solid #1e3a5f;
   padding-left: 16px;
@@ -144,7 +144,7 @@ import { RouterLink, RouterView } from "vue-router";
 }
 
 .botao-sair:hover {
-  background-color: #12417e;
+  background-color: #141a4c;
 }
 
 .botao-sair:active {
@@ -160,7 +160,7 @@ import { RouterLink, RouterView } from "vue-router";
   margin-left: 400px;
   padding: 30px;
   overflow-y: auto;
-  background-color: #ffffff;
+  background-color: #000000;
 }
 
 @media (max-width: 768px) {
