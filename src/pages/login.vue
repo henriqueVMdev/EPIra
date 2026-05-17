@@ -56,6 +56,14 @@
         <button class="btn-primary" type="button" @click="entrar">
           Entrar
         </button>
+
+        <div class="divisor">
+          <span>ou</span>
+        </div>
+
+        <button class="btn-secondary" type="button" @click="criarConta">
+          Criar uma conta
+        </button>
       </section>
 
       <aside class="system-tip">
@@ -78,8 +86,14 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const emit = defineEmits(['login'])
+
+function criarConta() {
+  router.push('/cadastro')
+}
 
 const form = reactive({
   email: '',
@@ -271,6 +285,38 @@ button {
 
 .btn-primary:hover {
   background: #1d4ed8;
+}
+
+.divisor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.divisor::before,
+.divisor::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #1f2937;
+}
+
+.btn-secondary {
+  width: 100%;
+  min-height: 43px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid #374151;
+  color: #ffffff;
+}
+
+.btn-secondary:hover {
+  background: #1f2937;
+  border-color: #60a5fa;
 }
 
 .system-tip {
