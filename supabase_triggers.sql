@@ -10,8 +10,14 @@ create table if not exists public.profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
   email       text,
   nome        text,
+  cargo       text,
+  cpf         text,
   created_at  timestamptz not null default now()
 );
+
+-- Garante as colunas mesmo se a tabela ja existir de uma versao anterior
+alter table public.profiles add column if not exists cargo text;
+alter table public.profiles add column if not exists cpf   text;
 
 alter table public.profiles enable row level security;
 
