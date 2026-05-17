@@ -31,7 +31,7 @@
     <!-- SENAI -->
     <section class="secao-senai">
       <p class="texto-senai">aprovado pelo Senai, pronto para transformar sua empresa</p>
-      <div class="logo-senai">SENAI</div>
+      <img src="/home_assets/senai_asset.jpg" alt="SENAI" class="logo-senai" />
     </section>
 
     <!-- VANTAGENS -->
@@ -45,7 +45,9 @@
 
       <div class="grade-cartoes">
         <div class="cartao-vantagem">
-          <div class="icone-cartao icone-azul">💰</div>
+          <div class="icone-cartao icone-azul">
+            <img src="/home_assets/reducao_asset.png" alt="Redução de Custos" />
+          </div>
           <h3 class="titulo-cartao">Redução de Custos</h3>
           <p class="descricao-cartao">
             Evite desperdícios e compras desnecessárias com um controle preciso de estoque e
@@ -54,7 +56,9 @@
         </div>
 
         <div class="cartao-vantagem">
-          <div class="icone-cartao icone-verde">✓</div>
+          <div class="icone-cartao icone-azul">
+            <img src="/home_assets/Shield.png" alt="Conformidade NR-6" />
+          </div>
           <h3 class="titulo-cartao">Conformidade NR-6</h3>
           <p class="descricao-cartao">
             Mantenha-se em dia com as normas regulamentadoras. Emita fichas de EPI
@@ -63,7 +67,9 @@
         </div>
 
         <div class="cartao-vantagem">
-          <div class="icone-cartao icone-roxo">📦</div>
+          <div class="icone-cartao icone-azul">
+            <img src="/home_assets/Box_asset.png" alt="Estoque em Tempo Real" />
+          </div>
           <h3 class="titulo-cartao">Estoque em Tempo Real</h3>
           <p class="descricao-cartao">
             Monitore entradas e saídas instantaneamente. Receba alertas quando
@@ -75,15 +81,11 @@
 
     <!-- RECURSO 1 - RASTREAMENTO -->
     <section class="secao-recurso recurso-direita">
-      <div class="visual-recurso">
-        <div class="mock-painel">
-          <div class="mock-cabecalho">Painel de Estoque</div>
-          <div class="mock-linha"></div>
-          <div class="mock-linha"></div>
-          <div class="mock-linha curta"></div>
-        </div>
-      </div>
+      <div class="visual-recurso"></div>
       <div class="texto-recurso">
+        <div class="icone-recurso">
+          <img src="/home_assets/rastreamento_asset.png" alt="" />
+        </div>
         <h2 class="titulo-recurso">Rastreamento Automático</h2>
         <p class="descricao-recurso">
           Tenha controle total sobre onde está cada equipamento. Nosso sistema
@@ -91,9 +93,9 @@
           eliminando planilhas manuais e erros de contagem.
         </p>
         <ul class="lista-recurso">
-          <li><span class="marcador-verde">✓</span> Controle por centro de custo</li>
-          <li><span class="marcador-verde">✓</span> Histórico completo de movimentação</li>
-          <li><span class="marcador-verde">✓</span> Relatórios exportáveis em PDF/Excel</li>
+          <li><img src="/home_assets/check_asset.png" alt="✓" class="marcador-verde" /> Controle por centro de custo</li>
+          <li><img src="/home_assets/check_asset.png" alt="✓" class="marcador-verde" /> Histórico completo de movimentação</li>
+          <li><img src="/home_assets/check_asset.png" alt="✓" class="marcador-verde" /> Relatórios exportáveis em PDF/Excel</li>
         </ul>
       </div>
     </section>
@@ -101,42 +103,31 @@
     <!-- RECURSO 2 - CADASTRO -->
     <section class="secao-recurso recurso-esquerda">
       <div class="texto-recurso">
-        <h2 class="titulo-recurso">Cadastro Automático</h2>
+        <div class="icone-recurso">
+          <img src="/home_assets/cadastro_asset.png" alt="" />
+        </div>
+        <h2 class="titulo-recurso">cadastro automático</h2>
         <p class="descricao-recurso">
           Esqueça o papel. Com o EPIra, a entrega de EPI é registrada digitalmente
           via assinatura eletrônica, garantindo autenticidade e agilidade no
           processo de entrega.
         </p>
         <ul class="lista-recurso">
-          <li><span class="marcador-verde">✓</span> Ficha de EPI digital automática</li>
-          <li><span class="marcador-verde">✓</span> Ficha completa gerada automaticamente</li>
-          <li><span class="marcador-verde">✓</span> Validade jurídica garantida</li>
+          <li><img src="/home_assets/check_asset.png" alt="✓" class="marcador-verde" /> Ficha de EPI digital automática</li>
+          <li><img src="/home_assets/check_asset.png" alt="✓" class="marcador-verde" /> Ficha completa gerada automaticamente</li>
+          <li><img src="/home_assets/check_asset.png" alt="✓" class="marcador-verde" /> Validade jurídica garantida</li>
         </ul>
       </div>
-      <div class="visual-recurso">
-        <div class="mock-painel mock-grande"></div>
-      </div>
+      <div class="visual-recurso"></div>
     </section>
 
     <!-- RECURSO 3 - ALERTAS -->
     <section class="secao-recurso recurso-direita">
-      <div class="visual-recurso">
-        <div class="mock-alertas">
-          <div class="alerta alerta-vermelho">
-            <strong>Atenção: Validade Próxima</strong>
-            <span>Capacete MSA — Vence em 2 dias</span>
-          </div>
-          <div class="alerta alerta-amarelo">
-            <strong>Estoque Crítico</strong>
-            <span>Luvas de proteção — 1 unidade</span>
-          </div>
-          <div class="alerta alerta-verde">
-            <strong>Entrega Concluída</strong>
-            <span>10 EPIs entregues hoje</span>
-          </div>
-        </div>
-      </div>
+      <div class="visual-recurso"></div>
       <div class="texto-recurso">
+        <div class="icone-recurso">
+          <img src="/home_assets/alerta_asset.png" alt="" />
+        </div>
         <h2 class="titulo-recurso">Alertas de Validade</h2>
         <p class="descricao-recurso">
           Não seja pego de surpresa. O sistema monitora constantemente os prazos
@@ -144,9 +135,9 @@
           problemas aconteçam.
         </p>
         <ul class="lista-recurso">
-          <li><span class="marcador-verde">✓</span> Avisos configuráveis por e-mail e SMS</li>
-          <li><span class="marcador-verde">✓</span> Controle de validade do CA e do fabricante</li>
-          <li><span class="marcador-verde">✓</span> Dashboard de pendências críticas</li>
+          <li><img src="/home_assets/check_asset.png" alt="✓" class="marcador-verde" /> Avisos configuráveis por e-mail e SMS</li>
+          <li><img src="/home_assets/check_asset.png" alt="✓" class="marcador-verde" /> Controle de validade do CA e do fabricante</li>
+          <li><img src="/home_assets/check_asset.png" alt="✓" class="marcador-verde" /> Dashboard de pendências críticas</li>
         </ul>
       </div>
     </section>
@@ -357,14 +348,9 @@
 }
 
 .logo-senai {
-  font-size: 36px;
-  font-weight: 900;
-  color: #FFFFFF;
-  letter-spacing: 4px;
-  font-style: italic;
-  display: inline-block;
-  border-bottom: 3px solid #FFFFFF;
-  padding-bottom: 4px;
+  height: 60px;
+  width: auto;
+  object-fit: contain;
 }
 
 /* ====== VANTAGENS ====== */
@@ -437,6 +423,12 @@
   margin-bottom: 18px;
 }
 
+.icone-cartao img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
 .icone-azul {
   background: rgba(37, 99, 235, 0.2);
   color: #60A5FA;
@@ -490,9 +482,35 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 14px;
   height: 320px;
-  padding: 24px;
+  padding: 0;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.imagem-recurso {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.icone-recurso {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: rgba(37, 99, 235, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.icone-recurso img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: brightness(0) saturate(100%) invert(62%) sepia(57%) saturate(2398%) hue-rotate(199deg) brightness(101%) contrast(96%);
 }
 
 .mock-painel {
@@ -603,16 +621,10 @@
 }
 
 .marcador-verde {
-  background: rgba(34, 197, 94, 0.2);
-  color: #4ADE80;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
+  object-fit: contain;
 }
 
 /* ====== CHAMADA FINAL ====== */
