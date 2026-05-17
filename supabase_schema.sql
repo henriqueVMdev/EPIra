@@ -36,6 +36,15 @@ alter table public.movimentacoes enable row level security;
 
 -- Permite acesso a usuarios autenticados.
 -- (Para testes rapidos sem login, troque 'authenticated' por 'anon, authenticated'.)
+drop policy if exists "epis_select" on public.epis;
+drop policy if exists "epis_insert" on public.epis;
+drop policy if exists "epis_update" on public.epis;
+drop policy if exists "epis_delete" on public.epis;
+drop policy if exists "mov_select" on public.movimentacoes;
+drop policy if exists "mov_insert" on public.movimentacoes;
+drop policy if exists "mov_update" on public.movimentacoes;
+drop policy if exists "mov_delete" on public.movimentacoes;
+
 create policy "epis_select" on public.epis
   for select to authenticated using (true);
 create policy "epis_insert" on public.epis
