@@ -127,7 +127,10 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { supabase } from '../lib/supabase'
+
+const router = useRouter()
 
 const form = reactive({
   nome: '',
@@ -181,9 +184,8 @@ async function cadastrar() {
   }
 
   erro.value = false
-  mensagem.value = 'EPI cadastrado com sucesso!'
   limpar()
-  mensagem.value = 'EPI cadastrado com sucesso!'
+  router.push('/epis')
 }
 </script>
 

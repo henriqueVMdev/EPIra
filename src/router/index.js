@@ -4,12 +4,14 @@ import Home from '../pages/home.vue'
 import Login from '../pages/login.vue'
 import CadastroEPI from '../pages/cadastro_EPI.vue'
 import RegistroUsuario from '../pages/registro_usuario.vue'
+import ListaEPIs from '../pages/lista_EPIs.vue'
 
 const routes = [
   { path: '/', component: Home },
   { path: '/login', component: Login },
   { path: '/registrar', component: RegistroUsuario },
   { path: '/cadastro', component: CadastroEPI, meta: { requiresAuth: true } },
+  { path: '/epis', component: ListaEPIs, meta: { requiresAuth: true } },
 ]
 
 const router = createRouter({

@@ -123,7 +123,7 @@ async function entrar() {
   }
 
   mensagem.value = 'Login realizado.'
-  router.push('/cadastro')
+  router.push('/epis')
 }
 </script>
 
