@@ -53,9 +53,14 @@
           {{ mensagem }}
         </p>
 
-        <button class="btn-primary" type="button" @click="entrar">
-          Entrar
+        <button class="btn-primary" type="button" @click="entrar" :disabled="carregando">
+          {{ carregando ? 'Entrando...' : 'Entrar' }}
         </button>
+
+        <p class="alt-link">
+          Não tem conta?
+          <button class="link-button" type="button" @click="$router.push('/registrar')">Criar conta</button>
+        </p>
       </section>
 
       <aside class="system-tip">
@@ -78,8 +83,10 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { supabase } from '../lib/supabase'
 
-const emit = defineEmits(['login'])
+const router = useRouter()
 
 const form = reactive({
   email: '',
@@ -89,17 +96,34 @@ const form = reactive({
 
 const mensagem = ref('')
 const temErro = ref(false)
+const carregando = ref(false)
 
-function entrar() {
+async function entrar() {
   if (!form.email || !form.senha) {
     temErro.value = true
     mensagem.value = 'Informe e-mail e senha para continuar.'
     return
   }
 
+  carregando.value = true
   temErro.value = false
+  mensagem.value = ''
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email: form.email,
+    password: form.senha,
+  })
+
+  carregando.value = false
+
+  if (error) {
+    temErro.value = true
+    mensagem.value = 'Falha no login: ' + error.message
+    return
+  }
+
   mensagem.value = 'Login realizado.'
-  emit('login', { email: form.email, lembrar: form.lembrar })
+  router.push('/cadastro')
 }
 </script>
 
@@ -251,6 +275,13 @@ label {
 
 .field-status.error {
   color: #fca5a5;
+}
+
+.alt-link {
+  margin: 16px 0 0;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 14px;
 }
 
 button {

@@ -86,14 +86,19 @@
             class="input h-24 resize-none"></textarea>
         </div>
 
+        <!-- MENSAGEM -->
+        <p v-if="mensagem" :class="erro ? 'text-red-400' : 'text-green-400'" class="text-sm mb-3">
+          {{ mensagem }}
+        </p>
+
         <!-- BOTÕES -->
         <div class="flex justify-end gap-3">
-          <button class="btn-secondary" @click="limpar">
+          <button class="btn-secondary" @click="limpar" :disabled="salvando">
             Cancelar
           </button>
 
-          <button class="btn-primary" @click="cadastrar">
-            Cadastrar EPI
+          <button class="btn-primary" @click="cadastrar" :disabled="salvando">
+            {{ salvando ? 'Salvando...' : 'Cadastrar EPI' }}
           </button>
         </div>
 
@@ -121,7 +126,8 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
+import { supabase } from '../lib/supabase'
 
 const form = reactive({
   nome: '',
@@ -132,6 +138,10 @@ const form = reactive({
   obs: ''
 })
 
+const salvando = ref(false)
+const mensagem = ref('')
+const erro = ref(false)
+
 function limpar() {
   form.nome = ''
   form.categoria = ''
@@ -139,12 +149,41 @@ function limpar() {
   form.validade = ''
   form.quantidade = 0
   form.obs = ''
+  mensagem.value = ''
 }
 
-function cadastrar() {
-  console.log('EPI cadastrado:', form)
+async function cadastrar() {
+  if (!form.nome) {
+    erro.value = true
+    mensagem.value = 'Informe o nome do EPI.'
+    return
+  }
 
-  // Aqui você pode integrar com Supabase depois
+  salvando.value = true
+  mensagem.value = ''
+
+  const { error } = await supabase.from('epis').insert({
+    nome: form.nome,
+    categoria: form.categoria || null,
+    ca: form.ca || null,
+    validade: form.validade || null,
+    quantidade: Number(form.quantidade) || 0,
+    obs: form.obs || null
+  })
+
+  salvando.value = false
+
+  if (error) {
+    erro.value = true
+    mensagem.value = 'Erro ao cadastrar: ' + error.message
+    console.error(error)
+    return
+  }
+
+  erro.value = false
+  mensagem.value = 'EPI cadastrado com sucesso!'
+  limpar()
+  mensagem.value = 'EPI cadastrado com sucesso!'
 }
 </script>
 

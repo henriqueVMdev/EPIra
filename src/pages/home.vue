@@ -7,7 +7,7 @@
         <a href="#">Recursos</a>
         <a href="#">Suporte</a>
       </div>
-      <button class="btn-login">Login</button>
+      <button class="btn-login" @click="$router.push('/login')">Login</button>
     </nav>
 
     <section class="hero">
