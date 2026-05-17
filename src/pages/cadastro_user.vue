@@ -91,17 +91,12 @@
           />
         </div>
 
-        <label class="opcao-termos">
-          <input v-model="form.termos" type="checkbox" />
-          <span>Aceito os <a href="#">termos de uso</a> e a <a href="#">política de privacidade</a>.</span>
-        </label>
-
         <p v-if="mensagem" class="status-campo" :class="{ erro: temErro }">
           {{ mensagem }}
         </p>
 
-        <button class="botao-primario" type="button" @click="criar">
-          Criar Conta
+        <button class="botao-primario" type="button" @click="criar" :disabled="carregando">
+          {{ carregando ? 'Criando...' : 'Criar Conta' }}
         </button>
 
         <p class="texto-login">
@@ -120,6 +115,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { supabase } from '../lib/supabase'
 
 const router = useRouter()
 
@@ -130,13 +126,13 @@ const form = reactive({
   cargo: '',
   senha: '',
   confirmar: '',
-  termos: false,
 })
 
 const mensagem = ref('')
 const temErro = ref(false)
+const carregando = ref(false)
 
-function criar() {
+async function criar() {
   if (!form.nome || !form.email || !form.senha || !form.confirmar) {
     temErro.value = true
     mensagem.value = 'Preencha todos os campos obrigatórios.'
@@ -155,14 +151,45 @@ function criar() {
     return
   }
 
-  if (!form.termos) {
+  const cpfNumerico = parseInt(form.cpf.replace(/\D/g, ''), 10)
+  if (form.cpf && Number.isNaN(cpfNumerico)) {
     temErro.value = true
-    mensagem.value = 'É necessário aceitar os termos para continuar.'
+    mensagem.value = 'CPF inválido.'
     return
   }
 
+  carregando.value = true
   temErro.value = false
+  mensagem.value = 'Criando conta...'
+
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email: form.email,
+    password: form.senha,
+  })
+
+  if (authError) {
+    temErro.value = true
+    mensagem.value = authError.message || 'Erro ao criar usuário.'
+    carregando.value = false
+    return
+  }
+
+  const { error: perfilError } = await supabase.from('profiles').insert({
+    email: form.email,
+    nome: form.nome,
+    cpf: cpfNumerico || null,
+    cargo: form.cargo || null,
+  })
+
+  if (perfilError) {
+    temErro.value = true
+    mensagem.value = perfilError.message || 'Erro ao salvar perfil.'
+    carregando.value = false
+    return
+  }
+
   mensagem.value = 'Conta criada com sucesso! Redirecionando...'
+  carregando.value = false
 
   setTimeout(() => {
     router.push('/login')
