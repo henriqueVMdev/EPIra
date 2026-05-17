@@ -92,7 +92,7 @@ const router = useRouter()
 const emit = defineEmits(['login'])
 
 function criarConta() {
-  router.push('/cadastro')
+  router.push('/cadastro_user')
 }
 
 const form = reactive({
