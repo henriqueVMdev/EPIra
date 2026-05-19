@@ -1,17 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '../lib/supabase'
 import Home from '../pages/home.vue'
-import Login from '../pages/login.vue'
-import CadastroEPI from '../pages/cadastro_EPI.vue'
-import RegistroUsuario from '../pages/registro_usuario.vue'
-import ListaEPIs from '../pages/lista_EPIs.vue'
+import login from '../pages/login.vue'
+import cadastro_EPI from '../pages/cadastro_EPI.vue'
+import cadastro_user from '../pages/cadastro_user.vue'
 
 const routes = [
   { path: '/', component: Home },
-  { path: '/login', component: Login },
-  { path: '/registrar', component: RegistroUsuario },
-  { path: '/cadastro', component: CadastroEPI, meta: { requiresAuth: true } },
-  { path: '/epis', component: ListaEPIs, meta: { requiresAuth: true } },
+  { path: '/login', component: login },
+  { path: '/cadastro_EPI', component: cadastro_EPI },
+  { path: '/cadastro_user', component: cadastro_user },
 ]
 
 const router = createRouter({

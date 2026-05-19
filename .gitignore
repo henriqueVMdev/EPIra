@@ -12,10 +12,18 @@ dist
 dist-ssr
 *.local
 
-# Variaveis de ambiente (NAO commitar chaves)
-.env
-.env.*
+# Vite cache
+.vite/
+
+# Environment variables
+.env*
 !.env.example
+
+# Test coverage
+coverage/
+
+# TypeScript build cache
+*.tsbuildinfo
 
 # Editor directories and files
 .vscode/*
