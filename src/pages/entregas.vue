@@ -404,6 +404,7 @@ function closeSuccess() {
 .page-header,
 .card,
 .api-error {
+  margin-bottom: 28px;
   margin-left: 0;
   margin-right: 0;
 }
