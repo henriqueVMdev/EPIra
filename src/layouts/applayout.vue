@@ -11,7 +11,7 @@
           <span>Cadastro Funcionários</span>
         </RouterLink>
 
-        <RouterLink to="/applayout/cadastro" class="menu-item" active-class="active">
+        <RouterLink to="/applayout/cadastro_epi" class="menu-item" active-class="active">
           <i class="fas fa-box"></i>
           <span>Cadastro de EPIs</span>
         </RouterLink>
@@ -157,7 +157,7 @@ import { RouterLink, RouterView } from "vue-router";
 
 .conteudo {
   flex-grow: 1;
-  margin-left: 400px;
+  margin-left: 300px;
   padding: 30px;
   overflow-y: auto;
   background-color: #000000;

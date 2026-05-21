@@ -115,7 +115,8 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { supabase } from '../lib/supabase'
+import { useSupabase } from '../composables/useSupabase'
+const { supabase } = useSupabase()
 
 const router = useRouter()
 
