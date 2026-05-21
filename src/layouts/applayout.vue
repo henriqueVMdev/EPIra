@@ -39,8 +39,25 @@
 </template>
 
 <script setup>
-
+import { useSupabase } from "../composables/useSupabase";
+import { useRouter } from "vue-router";
 import { RouterLink, RouterView } from "vue-router";
+
+const { supabase } = useSupabase();
+
+const router = useRouter();
+
+async function sair() {
+
+  try {
+    await supabase.auth.signOut();
+    
+    router.push("/login");
+    
+  } catch (err) {
+    console.error("Erro ao fazer logout:", err);
+  }
+}
 </script>
 
 <style scoped>

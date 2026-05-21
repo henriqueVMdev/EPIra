@@ -5,7 +5,7 @@ import funcionarios from '../pages/funcionarios.vue'
 import cadastro_epi from '../pages/cadastro_epi.vue'
 import cadastro_user from '../pages/cadastro_user.vue'
 import entregas from '../pages/entregas.vue'
-import relatorios from '../pages/relatórios.vue'
+import relatorios from '../pages/relatorios.vue'
 import applayout from '../layouts/applayout.vue'
 
 const routes = [
