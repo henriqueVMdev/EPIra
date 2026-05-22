@@ -250,7 +250,7 @@ async function criar() {
   display: flex;
   align-items: center;
   flex-direction: column;
-  padding: 48px 16px 40px;
+  padding: 24px 16px 40px;
 }
 
 .titulo-cadastro {

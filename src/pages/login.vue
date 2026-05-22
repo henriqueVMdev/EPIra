@@ -158,11 +158,11 @@ function entrar() {
   display: flex;
   align-items: center;
   flex-direction: column;
-  padding: 56px 16px 40px;
+  padding: 24px 16px 40px;
 }
 
 h1 {
-  margin-bottom: 8px;
+  margin: 0 0 8px;
   color: #ffffff;
   font-size: 30px;
   line-height: 1.2;
@@ -376,7 +376,7 @@ button {
   }
 
   .content {
-    padding-top: 40px;
+    padding-top: 18px;
   }
 
   .login-card {
