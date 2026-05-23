@@ -3,9 +3,21 @@
     <aside class="sidebar">
       <div class="logo-area">
         <div class="logo-icon">
-          <i class="fas fa-shield-alt"></i>
+          <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
+            <!-- dome -->
+            <path d="M5 29 Q5 7 22 7 Q39 7 39 29 Z" fill="white" opacity="0.95"/>
+            <!-- brim -->
+            <rect x="2" y="29" width="40" height="6" rx="3" fill="white" opacity="0.95"/>
+            <!-- inner dome depth -->
+            <path d="M10 29 Q10 14 22 13 Q34 14 34 29 Z" fill="rgba(10,22,80,0.18)"/>
+            <!-- center rib -->
+            <line x1="22" y1="7" x2="22" y2="29" stroke="rgba(10,22,80,0.15)" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
         </div>
-        <h1 class="logo-text">EPIra</h1>
+        <div class="logo-wordmark">
+          <h1 class="logo-text">EPIra</h1>
+          <span class="logo-sub">Gestão de EPIs</span>
+        </div>
       </div>
 
       <div class="divider"></div>
@@ -114,24 +126,44 @@ async function sair() {
 }
 
 .logo-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #3b5bdb, #1971c2);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(59, 91, 219, 0.45);
+  box-shadow: 0 4px 16px rgba(59, 91, 219, 0.5);
   flex-shrink: 0;
+  padding: 6px;
+}
+
+.logo-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.logo-wordmark {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1;
 }
 
 .logo-text {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
   color: #fff;
   letter-spacing: 0.5px;
+  line-height: 1.1;
+}
+
+.logo-sub {
+  font-size: 10px;
+  font-weight: 400;
+  color: rgba(165, 180, 252, 0.7);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
 /* ── Divider ── */

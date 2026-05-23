@@ -5,6 +5,7 @@
         <span class="brand-name">EPIra</span>
         <span class="brand-divider">| Gestão SENAI</span>
       </div>
+      <router-link to="/" class="link-voltar">← Voltar ao Início</router-link>
     </header>
 
     <main class="content">
@@ -74,7 +75,7 @@
     </main>
 
     <footer class="app-footer">
-      <p>©️ 2024 EPIra Management System. Todos os direitos reservados.</p>
+      <p>©️ 2026 EPIra Management System. Todos os direitos reservados.</p>
       <nav aria-label="Links de rodapé">
         <a href="#">Suporte</a>
         <a href="#">Documentação</a>
@@ -151,6 +152,16 @@ function entrar() {
 .brand-divider {
   color: #9ca3af;
   font-size: 14px;
+}
+
+.link-voltar {
+  color: #93c5fd;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.link-voltar:hover {
+  color: #bfdbfe;
 }
 
 .content {

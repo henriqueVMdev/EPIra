@@ -107,7 +107,7 @@
     </main>
 
     <footer class="rodape-cadastro">
-      <p>© 2024 EPIra Management System. Todos os direitos reservados.</p>
+      <p>© 2026 EPIra Management System. Todos os direitos reservados.</p>
     </footer>
   </div>
 </template>

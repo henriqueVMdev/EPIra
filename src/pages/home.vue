@@ -189,7 +189,7 @@
       </div>
 
       <div class="creditos-rodape">
-        © 2024 EPIra Management System. Todos os direitos reservados.
+        © 2026 EPIra Management System. Todos os direitos reservados.
       </div>
     </footer>
 
