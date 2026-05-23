@@ -24,30 +24,22 @@
 
       <nav class="menu">
         <RouterLink to="/applayout/funcionarios" class="menu-item" active-class="active">
-          <div class="icon-wrap">
-            <i class="fas fa-users"></i>
-          </div>
+          <span class="icon-box"><i class="fas fa-users"></i></span>
           <span>Funcionários</span>
         </RouterLink>
 
         <RouterLink to="/applayout/cadastro_epi" class="menu-item" active-class="active">
-          <div class="icon-wrap">
-            <i class="fas fa-box"></i>
-          </div>
+          <span class="icon-box"><i class="fas fa-box"></i></span>
           <span>Gestão de EPIs</span>
         </RouterLink>
 
         <RouterLink to="/applayout/entregas" class="menu-item" active-class="active">
-          <div class="icon-wrap">
-            <i class="fas fa-truck"></i>
-          </div>
+          <span class="icon-box"><i class="fas fa-hand-holding"></i></span>
           <span>Entregas / Devoluções</span>
         </RouterLink>
 
         <RouterLink to="/applayout/relatorios" class="menu-item" active-class="active">
-          <div class="icon-wrap">
-            <i class="fas fa-chart-bar"></i>
-          </div>
+          <span class="icon-box"><i class="fas fa-chart-bar"></i></span>
           <span>Relatórios</span>
         </RouterLink>
       </nav>
@@ -55,9 +47,7 @@
       <div class="sidebar-footer">
         <div class="divider"></div>
         <button @click="sair" class="botao-sair">
-          <div class="icon-wrap">
-            <i class="fas fa-sign-out-alt"></i>
-          </div>
+          <span class="icon-box sair-box"><i class="fas fa-sign-out-alt"></i></span>
           <span>Sair</span>
         </button>
       </div>
@@ -210,24 +200,38 @@ async function sair() {
   padding-left: 9px;
 }
 
-.menu-item.active .icon-wrap {
-  color: #6699ff;
-}
-
-.icon-wrap {
+.icon-box {
   width: 32px;
   height: 32px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  font-size: 15px;
+  background: rgba(99, 132, 255, 0.1);
+  color: #7c9bdc;
+  font-size: 14px;
   flex-shrink: 0;
-  transition: background 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
 
-.menu-item:hover .icon-wrap {
-  background: rgba(99, 132, 255, 0.12);
+.menu-item:hover .icon-box {
+  background: rgba(99, 132, 255, 0.2);
+  color: #a5b4fc;
+}
+
+.menu-item.active .icon-box {
+  background: rgba(79, 114, 245, 0.25);
+  color: #6699ff;
+}
+
+.sair-box {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+
+.botao-sair:hover .sair-box {
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
 }
 
 /* ── Footer / Logout ── */

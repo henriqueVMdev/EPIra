@@ -10,7 +10,7 @@
     <!-- Cards de resumo -->
     <div class="summary-grid">
       <div class="summary-card">
-        <div class="summary-icon blue"><i class="fas fa-truck"></i></div>
+        <div class="summary-icon blue"><i class="fas fa-hand-holding"></i></div>
         <div class="summary-text">
           <span class="summary-value">{{ totalEntregas }}</span>
           <span class="summary-label">Entregas Realizadas</span>
