@@ -3,7 +3,18 @@
 
     <!-- CABEÇALHO -->
     <header class="cabecalho">
-      <div class="logotipo">EPIra</div>
+      <div class="logotipo">
+        <div class="brand-logo">
+          <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 29 Q5 7 22 7 Q39 7 39 29 Z" fill="white" opacity="0.95"/>
+            <rect x="2" y="29" width="40" height="6" rx="3" fill="white" opacity="0.95"/>
+            <path d="M10 29 Q10 14 22 13 Q34 14 34 29 Z" fill="rgba(10,22,80,0.18)"/>
+            <line x1="22" y1="7" x2="22" y2="29" stroke="rgba(10,22,80,0.15)" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="brand-name">EPIra</span>
+        <span class="brand-divider">| Gestão SENAI</span>
+      </div>
       <nav class="links-navegacao">
         <a href="#" class="link-nav">Recursos</a>
         <a href="#" class="link-nav">Suporte</a>
@@ -228,10 +239,38 @@ export default {
 }
 
 .logotipo {
-  font-size: 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #3b5bdb, #1971c2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  box-shadow: 0 3px 10px rgba(59, 91, 219, 0.4);
+  flex-shrink: 0;
+}
+
+.brand-logo svg {
+  width: 100%;
+  height: 100%;
+}
+
+.brand-name {
+  font-size: 18px;
   font-weight: 700;
-  color: #FFFFFF;
-  letter-spacing: -0.5px;
+  color: #60a5fa;
+}
+
+.brand-divider {
+  color: #9ca3af;
+  font-size: 14px;
 }
 
 .links-navegacao {
