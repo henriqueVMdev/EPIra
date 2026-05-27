@@ -83,7 +83,7 @@
     </main>
 
     <footer class="app-footer">
-      <p>©️ 2026 EPIra Management System. Todos os direitos reservados.</p>
+      <p>© 2026 EPIra Management System. Todos os direitos reservados.</p>
       <nav aria-label="Links de rodapé">
         <a href="#">Suporte</a>
         <a href="#">Documentação</a>

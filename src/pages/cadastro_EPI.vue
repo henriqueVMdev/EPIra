@@ -126,7 +126,7 @@
       <div class="card-footer">
         <span class="footer-info">Ao cadastrar o CA, o sistema vinculará as informações de conformidade.</span>
         <div class="btn-group">
-          <button class="btn btn-ghost" type="button" @click="limpar">↺ Limpar</button>
+          <button class="btn btn-ghost" type="button" @click="limpar">↺ {{ editingId ? 'Cancelar' : 'Limpar' }}</button>
           <button
             class="btn btn-primary"
             type="button"
@@ -135,10 +135,74 @@
           >
             <span v-if="submitting" class="spinner"></span>
             <span v-else>✓</span>
-            {{ submitting ? 'Salvando...' : 'Cadastrar EPI' }}
+            {{ submitting ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Cadastrar EPI' }}
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- Tabela de EPIs cadastrados -->
+    <div class="table-card">
+      <div class="table-header">
+        <div class="table-header-icon">📦</div>
+        <div class="table-header-text">
+          <h2>EPIs Cadastrados</h2>
+          <p>Estoque atual de equipamentos registrados no sistema</p>
+        </div>
+        <span class="epi-count">{{ epis.length }} item{{ epis.length !== 1 ? 's' : '' }}</span>
+      </div>
+
+      <div v-if="loadingEpis" class="table-loading">
+        <span class="spinner"></span> Carregando...
+      </div>
+
+      <div v-else-if="epis.length === 0" class="table-empty">
+        Nenhum EPI cadastrado ainda.
+      </div>
+
+      <template v-else>
+        <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Categoria</th>
+              <th>CA</th>
+              <th>Validade</th>
+              <th class="col-qty">Estoque</th>
+              <th>Observações</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="epi in epis" :key="epi.id" :class="epi.quantidade === 0 ? 'row-zero' : epi.quantidade <= 5 ? 'row-low' : ''">
+              <td class="td-nome">{{ epi.nome }}</td>
+              <td><span class="badge-categoria">{{ epi.categoria }}</span></td>
+              <td class="td-mono">{{ epi.ca || '—' }}</td>
+              <td class="td-mono">{{ epi.validade ? new Date(epi.validade + 'T00:00:00').toLocaleDateString('pt-BR') : '—' }}</td>
+              <td class="col-qty">
+                <span class="badge-qty" :class="epi.quantidade === 0 ? 'qty-zero' : epi.quantidade <= 5 ? 'qty-low' : 'qty-ok'">
+                  {{ epi.quantidade }}
+                </span>
+              </td>
+              <td class="td-obs">{{ epi.obs || '—' }}</td>
+              <td><button class="btn-edit" @click="editRecord(epi)"><i class="fas fa-pencil-alt"></i> Editar</button></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="table-legenda">
+          <span class="legenda-item">
+            <span class="legenda-cor cor-ok"></span> Estoque normal (&gt; 5)
+          </span>
+          <span class="legenda-item">
+            <span class="legenda-cor cor-low"></span> Estoque baixo (1–5)
+          </span>
+          <span class="legenda-item">
+            <span class="legenda-cor cor-zero"></span> Sem estoque (0)
+          </span>
+        </div>
+      </template>
     </div>
 
     <!-- Erro global de API -->
@@ -163,14 +227,34 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useSupabase } from '@/composables/useSupabase'
 
 const { supabase } = useSupabase()
 
-const submitting  = ref(false)
-const showSuccess = ref(false)
-const apiError    = ref('')
+const submitting   = ref(false)
+const showSuccess  = ref(false)
+const apiError     = ref('')
+const epis         = ref([])
+const loadingEpis  = ref(false)
+const editingId    = ref(null)
+
+async function fetchEpis() {
+  loadingEpis.value = true
+  const { data, error } = await supabase
+    .from('epis')
+    .select('id, nome, categoria, ca, validade, quantidade, obs')
+    .order('nome', { ascending: true })
+  console.log('fetchEpis →', { data, error })
+  if (error) {
+    apiError.value = 'Erro ao carregar EPIs: ' + error.message
+  } else {
+    epis.value = data ?? []
+  }
+  loadingEpis.value = false
+}
+
+onMounted(fetchEpis)
 
 const initialForm = () => ({
   nome:       '',
@@ -210,36 +294,57 @@ async function cadastrar() {
 
   submitting.value = true
   try {
-    const { error } = await supabase
-      .from('epis')
-      .insert([{
-        nome:      form.nome.trim(),
-        categoria: form.categoria,
-        ca:        form.ca.trim() || null,
-        validade:  form.validade  || null,
-        quantidade: form.quantidade,
-        observacoes: form.obs.trim() || null,
-        ativo:     true,
-      }])
+    const payload = {
+      nome:       form.nome.trim(),
+      categoria:  form.categoria,
+      ca:         form.ca.trim() || null,
+      validade:   form.validade  || null,
+      quantidade: form.quantidade,
+      obs:        form.obs.trim() || null,
+    }
+
+    let error
+    if (editingId.value) {
+      ;({ error } = await supabase.from('epis').update(payload).eq('id', editingId.value))
+    } else {
+      ;({ error } = await supabase.from('epis').insert([payload]))
+    }
 
     if (error) throw error
     showSuccess.value = true
   } catch (e) {
-    apiError.value = 'Erro ao cadastrar EPI: ' + e.message
+    apiError.value = 'Erro ao salvar EPI: ' + e.message
   } finally {
     submitting.value = false
   }
 }
 
+function editRecord(epi) {
+  Object.assign(form, {
+    nome:       epi.nome,
+    categoria:  epi.categoria,
+    ca:         epi.ca || '',
+    validade:   epi.validade || '',
+    quantidade: epi.quantidade,
+    obs:        epi.obs || '',
+  })
+  editingId.value = epi.id
+  apiError.value  = ''
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 function limpar() {
   Object.assign(form, initialForm())
   Object.keys(errors).forEach(k => (errors[k] = ''))
-  apiError.value = ''
+  apiError.value  = ''
+  editingId.value = null
 }
 
 function closeSuccess() {
   showSuccess.value = false
+  editingId.value   = null
   limpar()
+  fetchEpis()
 }
 </script>
 
@@ -661,5 +766,199 @@ textarea:focus {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── Tabela de EPIs ──────────────────────────────────────────────────────── */
+.table-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.3);
+  margin-bottom: 28px;
+  animation: slideUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s both;
+}
+
+.table-header {
+  background: #0F172A;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.table-header-icon {
+  width: 38px;
+  height: 38px;
+  background: var(--blue);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.table-header-text { flex: 1; }
+
+.table-header-text h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.table-header-text p {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 2px;
+}
+
+.epi-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue-mid);
+  background: rgba(59,130,246,0.12);
+  border: 1px solid rgba(59,130,246,0.25);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+
+.table-loading,
+.table-empty {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+thead th {
+  background: rgba(15,23,42,0.6);
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 11px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody tr {
+  border-bottom: 1px solid rgba(30,41,59,0.6);
+  transition: background 0.15s;
+}
+
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(30,58,138,0.07); }
+
+td {
+  padding: 12px 16px;
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+.col-qty { text-align: center; }
+.td-nome { font-weight: 600; color: var(--ink); }
+.td-mono { font-family: 'Courier New', monospace; font-size: 12px; color: var(--ink-mid); }
+.td-obs  { color: var(--ink-soft); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.badge-categoria {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(59,130,246,0.12);
+  color: var(--blue-mid);
+  border: 1px solid rgba(59,130,246,0.2);
+  white-space: nowrap;
+}
+
+.badge-qty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.qty-ok   { background: rgba(34,197,94,0.12);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+.qty-low  { background: rgba(234,179,8,0.12);  color: #fbbf24; border: 1px solid rgba(234,179,8,0.25); }
+.qty-zero { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+
+tbody tr.row-low  { background: rgba(234,179,8,0.05);  border-left: 3px solid #fbbf24; }
+tbody tr.row-zero { background: rgba(239,68,68,0.07);  border-left: 3px solid #f87171; }
+tbody tr.row-low:hover  { background: rgba(234,179,8,0.1); }
+tbody tr.row-zero:hover { background: rgba(239,68,68,0.12); }
+
+.table-legenda {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 16px;
+  background: rgba(15,23,42,0.4);
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.legenda-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.legenda-cor {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.cor-ok   { background: rgba(34,197,94,0.4);  border: 1px solid #4ade80; }
+.cor-low  { background: rgba(234,179,8,0.4);  border: 1px solid #fbbf24; }
+.cor-zero { background: rgba(239,68,68,0.4);  border: 1px solid #f87171; }
+
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-edit:hover {
+  border-color: var(--blue-mid);
+  color: var(--blue-mid);
+  background: rgba(59,130,246,0.08);
 }
 </style>
