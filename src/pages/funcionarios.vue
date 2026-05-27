@@ -137,7 +137,7 @@
       <div class="card-footer">
         <span class="footer-info">Dados armazenados com segurança</span>
         <div class="btn-group">
-          <button class="btn btn-ghost" type="button" @click="resetForm">↺ Limpar</button>
+          <button class="btn btn-ghost" type="button" @click="resetForm">↺ {{ editingId ? 'Cancelar' : 'Limpar' }}</button>
           <button
             class="btn btn-primary"
             type="button"
@@ -146,9 +146,62 @@
           >
             <span v-if="submitting" class="spinner"></span>
             <i v-else class="fas fa-save"></i>
-            {{ submitting ? 'Salvando...' : 'Cadastrar Funcionário' }}
+            {{ submitting ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Cadastrar Funcionário' }}
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Tabela de funcionários cadastrados -->
+    <div class="table-card">
+      <div class="table-header">
+        <div class="table-header-icon">👥</div>
+        <div class="table-header-text">
+          <h2>Funcionários Cadastrados</h2>
+          <p>Lista de todos os colaboradores registrados no sistema</p>
+        </div>
+        <span class="func-count">{{ funcionarios.length }} registro{{ funcionarios.length !== 1 ? 's' : '' }}</span>
+      </div>
+
+      <div v-if="loadingFuncionarios" class="table-loading">
+        <span class="spinner"></span> Carregando...
+      </div>
+
+      <div v-else-if="funcionarios.length === 0" class="table-empty">
+        Nenhum funcionário cadastrado ainda.
+      </div>
+
+      <div v-else class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Matrícula</th>
+              <th>CPF</th>
+              <th>Departamento</th>
+              <th>Cargo</th>
+              <th>E-mail</th>
+              <th class="col-center">Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="f in funcionarios" :key="f.id">
+              <td class="td-nome">{{ f.nome }}</td>
+              <td class="td-mono">#{{ f.matricula }}</td>
+              <td class="td-mono">{{ f.cpf ? f.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '—' }}</td>
+              <td><span class="badge-depto">{{ f.departamento }}</span></td>
+              <td class="td-cargo">{{ f.cargo }}</td>
+              <td class="td-email">{{ f.email }}</td>
+              <td class="col-center">
+                <span class="badge-status" :class="f.ativo ? 'status-ativo' : 'status-inativo'">
+                  {{ f.ativo ? 'Ativo' : 'Inativo' }}
+                </span>
+              </td>
+              <td><button class="btn-edit" @click="editRecord(f)"><i class="fas fa-pencil-alt"></i> Editar</button></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -191,16 +244,37 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useSupabase } from '@/composables/useSupabase'
+
+const { supabase } = useSupabase()
 
 // ─── Estado ────────────────────────────────────────────────────────────────
 
-const submitting  = ref(false)
-const showSuccess = ref(false)
-const apiError    = ref('')
-const docCounter  = ref(1)
-const lastSaved   = ref({})
+const submitting          = ref(false)
+const showSuccess         = ref(false)
+const apiError            = ref('')
+const docCounter          = ref(1)
+const lastSaved           = ref({})
+const funcionarios        = ref([])
+const loadingFuncionarios = ref(false)
+const editingId           = ref(null)
+
+async function fetchFuncionarios() {
+  loadingFuncionarios.value = true
+  const { data, error } = await supabase
+    .from('funcionarios')
+    .select('id, nome, matricula, cpf, email, departamento, cargo, ativo')
+    .order('nome', { ascending: true })
+  if (error) {
+    apiError.value = 'Erro ao carregar funcionários: ' + error.message
+  } else {
+    funcionarios.value = data ?? []
+  }
+  loadingFuncionarios.value = false
+}
+
+onMounted(fetchFuncionarios)
 
 const docNumber = computed(() => String(docCounter.value).padStart(6, '0'))
 
@@ -286,26 +360,30 @@ async function submitForm() {
 
   submitting.value = true
   try {
-    const { error } = await supabase
-      .from('funcionarios')        // ← ajuste para o nome da sua tabela
-      .insert([{
-        nome:         form.nome.trim(),
-        matricula:    form.matricula.trim(),
-        cpf:          form.cpf.replace(/\D/g, ''),
-        email:        form.email.trim().toLowerCase(),
-        departamento: form.departamento,
-        cargo:        form.cargo.trim(),
-        ativo:        true,        // ← remova se não tiver coluna ativo
-      }])
+    const payload = {
+      nome:         form.nome.trim(),
+      matricula:    form.matricula.trim(),
+      cpf:          form.cpf.replace(/\D/g, ''),
+      email:        form.email.trim().toLowerCase(),
+      departamento: form.departamento,
+      cargo:        form.cargo.trim(),
+      ativo:        true,
+    }
+
+    let error
+    if (editingId.value) {
+      ;({ error } = await supabase.from('funcionarios').update(payload).eq('id', editingId.value))
+    } else {
+      ;({ error } = await supabase.from('funcionarios').insert([payload]))
+    }
 
     if (error) throw error
 
-    lastSaved.value  = { ...form }
+    lastSaved.value   = { ...form }
     showSuccess.value = true
   } catch (e) {
     if (e.code === '23505') {
-      // unique constraint — CPF ou matrícula duplicado
-      if (e.message.includes('cpf'))       errors.cpf       = 'CPF já cadastrado.'
+      if (e.message.includes('cpf'))           errors.cpf       = 'CPF já cadastrado.'
       else if (e.message.includes('matricula')) errors.matricula = 'Matrícula já cadastrada.'
       else apiError.value = 'Registro duplicado: verifique CPF ou matrícula.'
     } else {
@@ -316,18 +394,38 @@ async function submitForm() {
   }
 }
 
+function editRecord(f) {
+  const cpfFormatado = f.cpf
+    ? f.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+    : ''
+  Object.assign(form, {
+    nome:         f.nome,
+    matricula:    f.matricula,
+    cpf:          cpfFormatado,
+    email:        f.email,
+    departamento: f.departamento,
+    cargo:        f.cargo,
+  })
+  editingId.value = f.id
+  apiError.value  = ''
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 // ─── Reset ─────────────────────────────────────────────────────────────────
 
 function resetForm() {
   Object.assign(form, initialForm())
   Object.keys(errors).forEach(k => (errors[k] = ''))
-  apiError.value = ''
+  apiError.value  = ''
+  editingId.value = null
 }
 
 function closeSuccess() {
   showSuccess.value = false
-  docCounter.value++
+  if (!editingId.value) docCounter.value++
+  editingId.value   = null
   resetForm()
+  fetchFuncionarios()
 }
 </script>
 
@@ -766,5 +864,161 @@ select:focus {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── Tabela de Funcionários ──────────────────────────────────────────────── */
+.table-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.3);
+  margin-top: 28px;
+  animation: slideUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s both;
+}
+
+.table-header {
+  background: #0F172A;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.table-header-icon {
+  width: 38px;
+  height: 38px;
+  background: var(--blue);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.table-header-text { flex: 1; }
+
+.table-header-text h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.table-header-text p {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 2px;
+}
+
+.func-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue-mid);
+  background: rgba(59,130,246,0.12);
+  border: 1px solid rgba(59,130,246,0.25);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+
+.table-loading,
+.table-empty {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+thead th {
+  background: rgba(15,23,42,0.6);
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 11px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody tr {
+  border-bottom: 1px solid rgba(30,41,59,0.6);
+  transition: background 0.15s;
+}
+
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(30,58,138,0.07); }
+
+td {
+  padding: 12px 16px;
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+.col-center { text-align: center; }
+.td-nome    { font-weight: 600; }
+.td-mono    { font-family: 'Courier New', monospace; font-size: 12px; color: var(--ink-mid); }
+.td-cargo   { color: var(--ink-mid); }
+.td-email   { color: var(--ink-soft); font-size: 12px; }
+
+.badge-depto {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(59,130,246,0.12);
+  color: var(--blue-mid);
+  border: 1px solid rgba(59,130,246,0.2);
+  white-space: nowrap;
+}
+
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-ativo   { background: rgba(34,197,94,0.12);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+.status-inativo { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-edit:hover {
+  border-color: var(--blue-mid);
+  color: var(--blue-mid);
+  background: rgba(59,130,246,0.08);
 }
 </style>

@@ -24,28 +24,24 @@
           <div class="section">
             <div class="section-label">Dados do Funcionário</div>
             <div class="field-grid">
-              <div class="field" :class="{ invalid: errors.funcionario_id }">
+              <div class="field" :class="{ invalid: errors.funcionario }">
                 <label for="funcionario">Funcionário <span class="required">*</span></label>
                 <div class="select-wrap">
                   <select
                     id="funcionario"
-                    v-model="form.funcionario_id"
+                    v-model="form.funcionario"
                     :disabled="loadingFuncionarios"
-                    @change="errors.funcionario_id = ''"
+                    @change="errors.funcionario = ''"
                   >
                     <option value="">
                       {{ loadingFuncionarios ? 'Carregando...' : 'Selecionar funcionário...' }}
                     </option>
-                    <option
-                      v-for="f in funcionarios"
-                      :key="f.id"
-                      :value="f.id"
-                    >
+                    <option v-for="f in funcionarios" :key="f.id" :value="f.nome">
                       {{ f.matricula ? f.matricula + ' — ' : '' }}{{ f.nome }}
                     </option>
                   </select>
                 </div>
-                <span class="field-error">{{ errors.funcionario_id }}</span>
+                <span class="field-error">{{ errors.funcionario }}</span>
               </div>
             </div>
           </div>
@@ -54,6 +50,18 @@
           <div class="section">
             <div class="section-label">Equipamento de Proteção Individual</div>
             <div class="field-grid">
+
+              <div class="field" :class="{ invalid: errors.tipo }">
+                <label for="tipo">Tipo de Movimentação <span class="required">*</span></label>
+                <div class="select-wrap">
+                  <select id="tipo" v-model="form.tipo" @change="errors.tipo = ''">
+                    <option value="">Selecionar tipo...</option>
+                    <option value="entrega">Entrega</option>
+                    <option value="devolucao">Devolução</option>
+                  </select>
+                </div>
+                <span class="field-error">{{ errors.tipo }}</span>
+              </div>
 
               <div class="field" :class="{ invalid: errors.epi_id }">
                 <label for="epi">Tipo de EPI <span class="required">*</span></label>
@@ -98,16 +106,16 @@
                   <span class="field-error">{{ errors.quantidade }}</span>
                 </div>
 
-                <div class="field" :class="{ invalid: errors.data_entrega }">
-                  <label for="data">Data de Entrega <span class="required">*</span></label>
+                <div class="field" :class="{ invalid: errors.data }">
+                  <label for="data">Data <span class="required">*</span></label>
                   <input
                     id="data"
                     type="date"
-                    v-model="form.data_entrega"
-                    @change="errors.data_entrega = ''"
+                    v-model="form.data"
+                    @change="errors.data = ''"
                   />
-                  <span class="field-hint">Data em que foi realizada a entrega</span>
-                  <span class="field-error">{{ errors.data_entrega }}</span>
+                  <span class="field-hint">Data em que foi realizada a movimentação</span>
+                  <span class="field-error">{{ errors.data }}</span>
                 </div>
               </div>
 
@@ -163,7 +171,7 @@
       <div class="card-footer">
         <span class="footer-info">Documento vinculado ao eSocial / CIPA</span>
         <div class="btn-group">
-          <button class="btn btn-ghost" type="button" @click="resetForm">↺ Limpar</button>
+          <button class="btn btn-ghost" type="button" @click="resetForm">↺ {{ editingId ? 'Cancelar' : 'Limpar' }}</button>
           <button
             class="btn btn-primary"
             type="button"
@@ -172,9 +180,69 @@
           >
             <span v-if="submitting" class="spinner"></span>
             <span v-else>✓</span>
-            {{ submitting ? 'Salvando...' : 'Registrar Entrega' }}
+            {{ submitting ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Registrar Entrega' }}
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Tabela de movimentações -->
+    <div class="table-card">
+      <div class="table-header">
+        <div class="table-header-icon">📋</div>
+        <div class="table-header-text">
+          <h2>Histórico de Movimentações</h2>
+          <p>Registros de entregas e devoluções de EPIs</p>
+        </div>
+        <span class="mov-count">{{ movimentacoes.length }} registro{{ movimentacoes.length !== 1 ? 's' : '' }}</span>
+      </div>
+
+      <div v-if="loadingMovimentacoes" class="table-loading">
+        <span class="spinner"></span> Carregando...
+      </div>
+
+      <div v-else-if="movimentacoes.length === 0" class="table-empty">
+        Nenhuma movimentação registrada ainda.
+      </div>
+
+      <div v-else class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Funcionário</th>
+              <th class="col-center">Tipo</th>
+              <th>EPI</th>
+              <th class="col-center">Qtd.</th>
+              <th>Data</th>
+              <th class="col-center">Assinatura</th>
+              <th>Observações</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="m in movimentacoes" :key="m.id">
+              <td class="td-nome">{{ m.funcionario }}</td>
+              <td class="col-center">
+                <span class="badge-tipo" :class="m.tipo === 'entrega' ? 'tipo-entrega' : 'tipo-devolucao'">
+                  {{ m.tipo === 'entrega' ? '↓ Entrega' : '↑ Devolução' }}
+                </span>
+              </td>
+              <td class="td-epi">
+                {{ m.epis?.nome ?? '—' }}
+                <span v-if="m.epis?.ca" class="td-ca">CA {{ m.epis.ca }}</span>
+              </td>
+              <td class="col-center td-qty">{{ m.quantidade }}</td>
+              <td class="td-mono">{{ m.data ? new Date(m.data + 'T00:00:00').toLocaleDateString('pt-BR') : '—' }}</td>
+              <td class="col-center">
+                <span class="badge-ass" :class="m.assinatura_confirmada ? 'ass-ok' : 'ass-no'">
+                  {{ m.assinatura_confirmada ? '✓' : '✗' }}
+                </span>
+              </td>
+              <td class="td-obs">{{ m.observacoes || '—' }}</td>
+              <td><button class="btn-edit" @click="editRecord(m)"><i class="fas fa-pencil-alt"></i> Editar</button></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -206,35 +274,40 @@ import { useSupabase } from '@/composables/useSupabase'
 
 const { supabase } = useSupabase()
 
-const funcionarios      = ref([])
-const epis              = ref([])
-const loadingFuncionarios = ref(false)
-const loadingEpis       = ref(false)
-const submitting        = ref(false)
-const showSuccess       = ref(false)
-const apiError          = ref('')
-const docCounter        = ref(1)
-const lastProtocol      = ref('')
+const funcionarios          = ref([])
+const loadingFuncionarios   = ref(false)
+const epis                  = ref([])
+const loadingEpis           = ref(false)
+const submitting            = ref(false)
+const showSuccess           = ref(false)
+const apiError              = ref('')
+const docCounter            = ref(1)
+const lastProtocol          = ref('')
+const movimentacoes         = ref([])
+const loadingMovimentacoes  = ref(false)
+const editingId             = ref(null)
 
 const docNumber = computed(() => String(docCounter.value).padStart(6, '0'))
 
 const today = new Date().toISOString().split('T')[0]
 
 const initialForm = () => ({
-  funcionario_id:        '',
+  funcionario:           '',
+  tipo:                  '',
   epi_id:                '',
   quantidade:            1,
-  data_entrega:          today,
+  data:                  today,
   observacoes:           '',
   assinatura_confirmada: false,
 })
 
 const form   = reactive(initialForm())
 const errors = reactive({
-  funcionario_id:        '',
+  funcionario:           '',
+  tipo:                  '',
   epi_id:                '',
   quantidade:            '',
-  data_entrega:          '',
+  data:                  '',
   assinatura_confirmada: '',
 })
 
@@ -244,7 +317,7 @@ import { computed } from 'vue'
 // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
 onMounted(async () => {
-  await Promise.all([fetchFuncionarios(), fetchEpis(), fetchDocCounter()])
+  await Promise.all([fetchFuncionarios(), fetchEpis(), fetchDocCounter(), fetchMovimentacoes()])
 })
 
 // ─── Fetch ─────────────────────────────────────────────────────────────────
@@ -253,11 +326,10 @@ async function fetchFuncionarios() {
   loadingFuncionarios.value = true
   try {
     const { data, error } = await supabase
-      .from('funcionarios')        // ← ajuste para o nome da sua tabela
+      .from('funcionarios')
       .select('id, nome, matricula')
-      .eq('ativo', true)           // ← remova se não tiver coluna ativo
+      .eq('ativo', true)
       .order('nome')
-
     if (error) throw error
     funcionarios.value = data ?? []
   } catch (e) {
@@ -271,9 +343,8 @@ async function fetchEpis() {
   loadingEpis.value = true
   try {
     const { data, error } = await supabase
-      .from('epis')               // ← ajuste para o nome da sua tabela
+      .from('epis')
       .select('id, nome, ca')
-      .eq('ativo', true)          // ← remova se não tiver coluna ativo
       .order('nome')
 
     if (error) throw error
@@ -286,11 +357,24 @@ async function fetchEpis() {
 }
 
 async function fetchDocCounter() {
-  // Conta os registros existentes para gerar o número do documento
   const { count } = await supabase
-    .from('entregas_epi')          // ← ajuste para o nome da sua tabela
+    .from('movimentacoes')
     .select('id', { count: 'exact', head: true })
   docCounter.value = (count ?? 0) + 1
+}
+
+async function fetchMovimentacoes() {
+  loadingMovimentacoes.value = true
+  const { data, error } = await supabase
+    .from('movimentacoes')
+    .select('id, funcionario, tipo, quantidade, data, assinatura_confirmada, observacoes, epis(nome, ca)')
+    .order('data', { ascending: false })
+  if (error) {
+    apiError.value = 'Erro ao carregar movimentações: ' + error.message
+  } else {
+    movimentacoes.value = data ?? []
+  }
+  loadingMovimentacoes.value = false
 }
 
 // ─── Quantidade ────────────────────────────────────────────────────────────
@@ -303,8 +387,12 @@ function decQty() { if (form.quantidade > 1)   form.quantidade-- }
 function validate() {
   let ok = true
 
-  if (!form.funcionario_id) {
-    errors.funcionario_id = 'Selecione um funcionário.'
+  if (!form.funcionario.trim()) {
+    errors.funcionario = 'Selecione um funcionário.'
+    ok = false
+  }
+  if (!form.tipo) {
+    errors.tipo = 'Selecione o tipo de movimentação.'
     ok = false
   }
   if (!form.epi_id) {
@@ -315,12 +403,12 @@ function validate() {
     errors.quantidade = 'Informe a quantidade.'
     ok = false
   }
-  if (!form.data_entrega) {
-    errors.data_entrega = 'Informe a data de entrega.'
+  if (!form.data) {
+    errors.data = 'Informe a data.'
     ok = false
   }
   if (!form.assinatura_confirmada) {
-    errors.assinatura_confirmada = 'É necessário confirmar a assinatura digital para registrar a entrega.'
+    errors.assinatura_confirmada = 'É necessário confirmar a assinatura digital.'
     ok = false
   }
 
@@ -335,18 +423,22 @@ async function submitForm() {
 
   submitting.value = true
   try {
-    const { data, error } = await supabase
-      .from('entregas_epi')        // ← ajuste para o nome da sua tabela
-      .insert([{
-        funcionario_id:        form.funcionario_id,
-        epi_id:                form.epi_id,
-        quantidade:            form.quantidade,
-        data_entrega:          form.data_entrega,
-        observacoes:           form.observacoes || null,
-        assinatura_confirmada: form.assinatura_confirmada,
-      }])
-      .select()
-      .single()
+    const payload = {
+      funcionario:           form.funcionario.trim(),
+      tipo:                  form.tipo,
+      epi_id:                form.epi_id,
+      quantidade:            form.quantidade,
+      data:                  form.data,
+      observacoes:           form.observacoes || null,
+      assinatura_confirmada: form.assinatura_confirmada,
+    }
+
+    let error
+    if (editingId.value) {
+      ;({ error } = await supabase.from('movimentacoes').update(payload).eq('id', editingId.value))
+    } else {
+      ;({ error } = await supabase.from('movimentacoes').insert([payload]).select().single())
+    }
 
     if (error) throw error
 
@@ -359,18 +451,36 @@ async function submitForm() {
   }
 }
 
+function editRecord(m) {
+  Object.assign(form, {
+    funcionario:           m.funcionario,
+    tipo:                  m.tipo,
+    epi_id:                m.epi_id,
+    quantidade:            m.quantidade,
+    data:                  m.data,
+    observacoes:           m.observacoes || '',
+    assinatura_confirmada: m.assinatura_confirmada,
+  })
+  editingId.value = m.id
+  apiError.value  = ''
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 // ─── Reset / Fechar modal ──────────────────────────────────────────────────
 
 function resetForm() {
   Object.assign(form, initialForm())
   Object.keys(errors).forEach(k => (errors[k] = ''))
-  apiError.value = ''
+  apiError.value  = ''
+  editingId.value = null
 }
 
 function closeSuccess() {
   showSuccess.value = false
-  docCounter.value++
+  if (!editingId.value) docCounter.value++
+  editingId.value   = null
   resetForm()
+  fetchMovimentacoes()
 }
 </script>
 
@@ -909,5 +1019,166 @@ textarea:focus {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── Tabela de Movimentações ─────────────────────────────────────────────── */
+.table-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.3);
+  margin-bottom: 28px;
+  animation: slideUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s both;
+}
+
+.table-header {
+  background: #0F172A;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.table-header-icon {
+  width: 38px;
+  height: 38px;
+  background: var(--blue);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.table-header-text { flex: 1; }
+
+.table-header-text h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.table-header-text p {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  margin-top: 2px;
+}
+
+.mov-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue-mid);
+  background: rgba(59,130,246,0.12);
+  border: 1px solid rgba(59,130,246,0.25);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+
+.table-loading,
+.table-empty {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+thead th {
+  background: rgba(15,23,42,0.6);
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 11px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody tr {
+  border-bottom: 1px solid rgba(30,41,59,0.6);
+  transition: background 0.15s;
+}
+
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(30,58,138,0.07); }
+
+td {
+  padding: 12px 16px;
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+.col-center { text-align: center; }
+.td-nome    { font-weight: 600; }
+.td-mono    { font-family: 'Courier New', monospace; font-size: 12px; color: var(--ink-mid); }
+.td-qty     { font-weight: 700; color: var(--ink-mid); }
+.td-obs     { color: var(--ink-soft); max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.td-epi     { color: var(--ink); }
+.td-ca      { display: block; font-size: 11px; color: var(--ink-soft); font-family: 'Courier New', monospace; }
+
+.badge-tipo {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tipo-entrega  { background: rgba(59,130,246,0.12); color: #60a5fa; border: 1px solid rgba(59,130,246,0.25); }
+.tipo-devolucao { background: rgba(168,85,247,0.12); color: #c084fc; border: 1px solid rgba(168,85,247,0.25); }
+
+.badge-ass {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ass-ok { background: rgba(34,197,94,0.12);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+.ass-no { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-edit:hover {
+  border-color: var(--blue-mid);
+  color: var(--blue-mid);
+  background: rgba(59,130,246,0.08);
 }
 </style>

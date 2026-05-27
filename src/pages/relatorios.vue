@@ -84,9 +84,9 @@
           <div class="field">
             <label>Funcionário</label>
             <div class="select-wrap">
-              <select v-model="filtros.funcionario_id" @change="buscarEntregas">
+              <select v-model="filtros.funcionario" @change="buscarEntregas">
                 <option value="">Todos os funcionários</option>
-                <option v-for="f in funcionarios" :key="f.id" :value="f.id">{{ f.nome }}</option>
+                <option v-for="f in funcionarios" :key="f.id" :value="f.nome">{{ f.nome }}</option>
               </select>
             </div>
           </div>
@@ -158,8 +158,8 @@
               </td>
             </tr>
             <tr v-else v-for="e in entregas" :key="e.id">
-              <td class="td-date">{{ formatarData(e.data_entrega) }}</td>
-              <td><strong>{{ e.funcionarios?.nome || 'Não informado' }}</strong></td>
+              <td class="td-date">{{ formatarData(e.data) }}</td>
+              <td><strong>{{ e.funcionario || 'Não informado' }}</strong></td>
               <td>{{ e.epis?.nome || 'EPI não vinculado' }}<span v-if="e.epis?.ca" class="ca-tag">CA {{ e.epis.ca }}</span></td>
               <td class="text-center">{{ e.quantidade }}</td>
               <td class="text-center">
@@ -201,17 +201,17 @@ let   pieChart  = null
 let   barChart  = null
 
 const filtros = ref({
-  funcionario_id: '',
-  data_inicio:    '',
-  data_fim:       '',
-  assinatura:     '',
+  funcionario:  '',
+  data_inicio:  '',
+  data_fim:     '',
+  assinatura:   '',
 })
 
 // ─── Computed ──────────────────────────────────────────────────────────────
 const totalEntregas      = computed(() => entregas.value.length)
 const totalAssinados     = computed(() => entregas.value.filter(e => e.assinatura_confirmada).length)
 const totalPendentes     = computed(() => entregas.value.filter(e => !e.assinatura_confirmada).length)
-const totalEstoqueCritico = computed(() => estoqueProcessado.value.filter(i => i.quantidade < 10).length)
+const totalEstoqueCritico = computed(() => estoqueProcessado.value.filter(i => i.quantidade <= 5).length)
 
 // ─── Fetch ─────────────────────────────────────────────────────────────────
 async function carregarFuncionarios() {
@@ -225,14 +225,13 @@ async function carregarFuncionarios() {
 async function carregarEstoque() {
   loadingEstoque.value = true
   try {
-    const [resEstoque, resEpis] = await Promise.all([
-      supabase.from('estoque').select('*'),     // ← ajuste
-      supabase.from('epis').select('id, nome'), // ← ajuste
-    ])
-    const episMap = Object.fromEntries((resEpis.data || []).map(i => [i.id, i.nome]))
-    estoqueProcessado.value = (resEstoque.data || []).map(item => ({
+    const { data } = await supabase
+      .from('epis')
+      .select('id, nome, quantidade')
+    estoqueProcessado.value = (data || []).map(item => ({
       ...item,
-      nome_epi: episMap[item.epi_id] || episMap[item.id_epi] || 'EPI Desconhecido',
+      epi_id:   item.id,
+      nome_epi: item.nome,
     }))
     await nextTick()
     renderCharts()
@@ -248,13 +247,13 @@ async function buscarEntregas() {
   apiError.value = ''
   try {
     let query = supabase
-      .from('entregas_epi')          // ← ajuste
-      .select('*, funcionarios(nome), epis(nome, ca)')
-      .order('data_entrega', { ascending: false })
+      .from('movimentacoes')
+      .select('*, epis(nome, ca)')
+      .order('data', { ascending: false })
 
-    if (filtros.value.funcionario_id) query = query.eq('funcionario_id', filtros.value.funcionario_id)
-    if (filtros.value.data_inicio)    query = query.gte('data_entrega', filtros.value.data_inicio)
-    if (filtros.value.data_fim)       query = query.lte('data_entrega', filtros.value.data_fim)
+    if (filtros.value.funcionario)    query = query.eq('funcionario', filtros.value.funcionario)
+    if (filtros.value.data_inicio)    query = query.gte('data', filtros.value.data_inicio)
+    if (filtros.value.data_fim)       query = query.lte('data', filtros.value.data_fim)
     if (filtros.value.assinatura !== '') query = query.eq('assinatura_confirmada', filtros.value.assinatura === 'true')
 
     const { data, error } = await query
@@ -270,7 +269,7 @@ async function buscarEntregas() {
 const buscarTudo = () => { carregarEstoque(); buscarEntregas() }
 
 function limparFiltros() {
-  filtros.value = { funcionario_id: '', data_inicio: '', data_fim: '', assinatura: '' }
+  filtros.value = { funcionario: '', data_inicio: '', data_fim: '', assinatura: '' }
   buscarEntregas()
 }
 
@@ -378,8 +377,8 @@ async function exportarPDF() {
     startY: 48,
     head: [['Data', 'Funcionário', 'EPI / CA', 'Qtd', 'Assinatura']],
     body: entregas.value.map(e => [
-      formatarData(e.data_entrega),
-      e.funcionarios?.nome || 'N/A',
+      formatarData(e.data),
+      e.funcionario || 'N/A',
       `${e.epis?.nome || 'N/A'}${e.epis?.ca ? ' (CA: ' + e.epis.ca + ')' : ''}`,
       e.quantidade,
       e.assinatura_confirmada ? 'SIM' : 'NÃO',
