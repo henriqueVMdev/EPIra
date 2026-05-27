@@ -35,13 +35,13 @@
         <span class="icone-play">▶</span> Ver Vídeo
       </button>
       <div class="imagem-heroi">
-        <span class="texto-placeholder">Colocar imagem aqui</span>
+        <img src="@/assets/imagem1.png" alt="EPIra Dashboard" class="img-heroi" />
       </div>
     </section>
 
     <!-- SENAI -->
     <section class="secao-senai">
-      <p class="texto-senai">aprovado pelo Senai, pronto para transformar sua empresa</p>
+      <p class="texto-senai">Aprovado pelo Senai, pronto para transformar sua empresa.</p>
       <img src="/home_assets/senai_asset.jpg" alt="SENAI" class="logo-senai" />
     </section>
 
@@ -92,7 +92,9 @@
 
     <!-- RECURSO 1 - RASTREAMENTO -->
     <section class="secao-recurso recurso-direita">
-      <div class="visual-recurso"></div>
+      <div class="visual-recurso">
+        <img src="@/assets/rastreamento1.png" alt="Rastreamento Automático" class="img-recurso" />
+      </div>
       <div class="texto-recurso">
         <div class="icone-recurso">
           <img src="/home_assets/rastreamento_asset.png" alt="" />
@@ -129,12 +131,16 @@
           <li><img src="/home_assets/check_asset.png" alt="✓" class="marcador-verde" /> Validade jurídica garantida</li>
         </ul>
       </div>
-      <div class="visual-recurso"></div>
+      <div class="visual-recurso">
+        <img src="@/assets/cadastro1.png" alt="Cadastro Automático" class="img-recurso" />
+      </div>
     </section>
 
     <!-- RECURSO 3 - ALERTAS -->
     <section class="secao-recurso recurso-direita">
-      <div class="visual-recurso"></div>
+      <div class="visual-recurso">
+        <img src="@/assets/alerta1.png" alt="Alertas de Validade" class="img-recurso" />
+      </div>
       <div class="texto-recurso">
         <div class="icone-recurso">
           <img src="/home_assets/alerta_asset.png" alt="" />
@@ -275,7 +281,11 @@ export default {
 
 .links-navegacao {
   display: flex;
+  align-items: center;
   gap: 32px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .link-nav {
@@ -366,14 +376,16 @@ export default {
 .imagem-heroi {
   max-width: 880px;
   margin: 50px auto 0;
-  height: 380px;
-  background: #C9CACC;
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #4B5563;
-  font-size: 15px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.img-heroi {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 12px;
 }
 
 /* ====== SENAI ====== */
@@ -520,21 +532,16 @@ export default {
 }
 
 .visual-recurso {
-  background: #111827;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 14px;
-  height: 320px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
 }
 
-.imagem-recurso {
+.img-recurso {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  display: block;
 }
 
 .icone-recurso {

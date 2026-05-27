@@ -116,6 +116,11 @@
 
     <footer class="rodape-cadastro">
       <p>© 2026 EPIra Management System. Todos os direitos reservados.</p>
+      <nav aria-label="Links de rodapé">
+        <a href="#">Suporte</a>
+        <a href="#">Documentação</a>
+        <a href="#">Privacidade</a>
+      </nav>
     </footer>
   </div>
 </template>
@@ -429,6 +434,22 @@ button {
 
 .rodape-cadastro p {
   margin: 0;
+}
+
+.rodape-cadastro nav {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 8px;
+}
+
+.rodape-cadastro a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.rodape-cadastro a:hover {
+  color: #93c5fd;
 }
 
 @media (max-width: 640px) {
