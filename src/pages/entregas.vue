@@ -212,6 +212,7 @@
               <th>Funcionário</th>
               <th class="col-center">Tipo</th>
               <th>EPI</th>
+              <th>Validade (CA)</th>
               <th class="col-center">Qtd.</th>
               <th>Data</th>
               <th class="col-center">Assinatura</th>
@@ -230,6 +231,12 @@
               <td class="td-epi">
                 {{ m.epis?.nome ?? '—' }}
                 <span v-if="m.epis?.ca" class="td-ca">CA {{ m.epis.ca }}</span>
+              </td>
+              <td>
+                <span v-if="m.epis?.validade" :class="validadeClass(m.epis.validade)" class="badge-validade">
+                  {{ formatDate(m.epis.validade) }}
+                </span>
+                <span v-else class="badge-validade validade-sem">—</span>
               </td>
               <td class="col-center td-qty">{{ m.quantidade }}</td>
               <td class="td-mono">{{ m.data ? new Date(m.data + 'T00:00:00').toLocaleDateString('pt-BR') : '—' }}</td>
@@ -367,7 +374,7 @@ async function fetchMovimentacoes() {
   loadingMovimentacoes.value = true
   const { data, error } = await supabase
     .from('movimentacoes')
-    .select('id, funcionario, tipo, quantidade, data, assinatura_confirmada, observacoes, epis(nome, ca)')
+    .select('id, funcionario, tipo, quantidade, data, assinatura_confirmada, observacoes, epis(nome, ca, validade)')
     .order('data', { ascending: false })
   if (error) {
     apiError.value = 'Erro ao carregar movimentações: ' + error.message
@@ -464,6 +471,21 @@ function editRecord(m) {
   editingId.value = m.id
   apiError.value  = ''
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// ─── Validade ──────────────────────────────────────────────────────────────
+
+function formatDate(date) {
+  return new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')
+}
+
+function validadeClass(date) {
+  const hoje    = new Date()
+  const validade = new Date(date + 'T00:00:00')
+  const diff    = (validade - hoje) / (1000 * 60 * 60 * 24)
+  if (diff < 0)   return 'validade-vencida'
+  if (diff <= 30) return 'validade-alerta'
+  return 'validade-ok'
 }
 
 // ─── Reset / Fechar modal ──────────────────────────────────────────────────
@@ -1159,6 +1181,21 @@ td {
 
 .ass-ok { background: rgba(34,197,94,0.12);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
 .ass-no { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+
+.badge-validade {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-family: 'Courier New', monospace;
+}
+
+.validade-ok      { background: rgba(34,197,94,0.12);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+.validade-alerta  { background: rgba(234,179,8,0.12);  color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+.validade-vencida { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+.validade-sem     { color: var(--ink-soft); }
 
 .btn-edit {
   display: inline-flex;

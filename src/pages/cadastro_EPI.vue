@@ -141,6 +141,48 @@
       </div>
     </div>
 
+    <!-- Alertas de Validade -->
+    <div v-if="alertas.length > 0" class="alertas-card">
+      <div class="alertas-header">
+        <div class="alertas-icon">⚠️</div>
+        <div class="alertas-header-text">
+          <h2>Alertas de Validade (CA)</h2>
+          <p>{{ alertas.length }} EPI{{ alertas.length !== 1 ? 's' : '' }} requer{{ alertas.length === 1 ? '' : 'em' }} atenção imediata</p>
+        </div>
+      </div>
+      <div class="alertas-lista">
+        <div
+          v-for="epi in alertas"
+          :key="epi.id"
+          class="alerta-item"
+          :class="epi._status === 'vencido' ? 'alerta-vencido' : 'alerta-alerta'"
+        >
+          <div class="alerta-left">
+            <span class="alerta-badge" :class="epi._status === 'vencido' ? 'badge-vencido' : 'badge-alerta'">
+              {{ epi._status === 'vencido' ? 'VENCIDO' : 'VENCE EM BREVE' }}
+            </span>
+            <span class="alerta-nome">{{ epi.nome }}</span>
+            <span v-if="epi.ca" class="alerta-ca">CA {{ epi.ca }}</span>
+          </div>
+          <div class="alerta-right">
+            <span class="alerta-data">{{ new Date(epi.validade + 'T00:00:00').toLocaleDateString('pt-BR') }}</span>
+            <span class="alerta-dias" :class="epi._status === 'vencido' ? 'dias-vencido' : 'dias-alerta'">
+              {{ epi._dias < 0 ? Math.abs(epi._dias) + (Math.abs(epi._dias) === 1 ? ' dia atrás' : ' dias atrás') : epi._dias + (epi._dias === 1 ? ' dia restante' : ' dias restantes') }}
+            </span>
+            <button class="btn-alerta-edit" @click="editRecord(epi)">Atualizar CA</button>
+          </div>
+        </div>
+      </div>
+      <div class="alertas-legenda">
+        <span class="legenda-item">
+          <span class="legenda-cor cor-vencido"></span> Vencido — CA já passou da data de validade
+        </span>
+        <span class="legenda-item">
+          <span class="legenda-cor cor-alerta"></span> Vence em breve — CA vence nos próximos 30 dias
+        </span>
+      </div>
+    </div>
+
     <!-- Tabela de EPIs cadastrados -->
     <div class="table-card">
       <div class="table-header">
@@ -227,7 +269,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import { useSupabase } from '@/composables/useSupabase'
 
 const { supabase } = useSupabase()
@@ -255,6 +297,20 @@ async function fetchEpis() {
 }
 
 onMounted(fetchEpis)
+
+const alertas = computed(() => {
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  return epis.value
+    .filter(e => e.validade)
+    .map(e => {
+      const val  = new Date(e.validade + 'T00:00:00')
+      const diff = Math.ceil((val - hoje) / (1000 * 60 * 60 * 24))
+      return { ...e, _dias: diff, _status: diff < 0 ? 'vencido' : 'alerta' }
+    })
+    .filter(e => e._dias <= 30)
+    .sort((a, b) => a._dias - b._dias)
+})
 
 const initialForm = () => ({
   nome:       '',
@@ -400,6 +456,179 @@ h1 span { color: var(--blue-mid); }
   font-weight: 300;
   line-height: 1.5;
 }
+
+/* ── Alertas de Validade ─────────────────────────────────────────────────── */
+.alertas-card {
+  background: var(--card-bg);
+  border: 1.5px solid rgba(239, 68, 68, 0.35);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(239, 68, 68, 0.1);
+  margin-bottom: 28px;
+  animation: slideUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.alertas-header {
+  background: rgba(239, 68, 68, 0.08);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.alertas-icon {
+  width: 38px;
+  height: 38px;
+  background: rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.alertas-header-text h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fca5a5;
+  margin: 0;
+}
+
+.alertas-header-text p {
+  font-size: 11px;
+  color: rgba(252, 165, 165, 0.6);
+  margin-top: 2px;
+}
+
+.alertas-lista {
+  display: flex;
+  flex-direction: column;
+}
+
+.alerta-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  border-bottom: 1px solid rgba(30, 41, 59, 0.6);
+  flex-wrap: wrap;
+  transition: background 0.15s;
+}
+
+.alerta-item:last-child { border-bottom: none; }
+
+.alerta-vencido { border-left: 3px solid #ef4444; }
+.alerta-vencido:hover { background: rgba(239, 68, 68, 0.05); }
+
+.alerta-alerta { border-left: 3px solid #f59e0b; }
+.alerta-alerta:hover { background: rgba(245, 158, 11, 0.05); }
+
+.alerta-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.alerta-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badge-vencido { background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.35); }
+.badge-alerta  { background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.35); }
+
+.alerta-nome {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.alerta-ca {
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-family: 'Courier New', monospace;
+}
+
+.alerta-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.alerta-data {
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+  color: var(--ink-mid);
+}
+
+.alerta-dias {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dias-vencido { color: #f87171; }
+.dias-alerta  { color: #fbbf24; }
+
+.btn-alerta-edit {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--blue-mid);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-alerta-edit:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: var(--blue-mid);
+}
+
+.alertas-legenda {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 24px;
+  background: rgba(15, 23, 42, 0.4);
+  border-top: 1px solid rgba(239, 68, 68, 0.15);
+  flex-wrap: wrap;
+}
+
+.alertas-legenda .legenda-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.alertas-legenda .legenda-cor {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.cor-vencido { background: rgba(239, 68, 68, 0.4);  border: 1px solid #ef4444; }
+.cor-alerta  { background: rgba(245, 158, 11, 0.4); border: 1px solid #f59e0b; }
 
 /* ── Card ───────────────────────────────────────────────────────────────── */
 .card {
