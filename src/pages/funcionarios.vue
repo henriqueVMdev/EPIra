@@ -210,6 +210,89 @@
       <i class="fas fa-exclamation-triangle"></i> {{ apiError }}
     </div>
 
+    <!-- Modal de Edição -->
+    <Transition name="fade">
+      <div v-if="showEditModal" class="success-overlay" @click="closeEditModal">
+        <div class="edit-modal" @click.stop>
+          <div class="edit-modal-header">
+            <div class="card-header-icon" style="font-size:16px">✏️</div>
+            <div class="edit-modal-title">
+              <h3>Editar Funcionário</h3>
+              <p>Altere os dados e salve as alterações</p>
+            </div>
+            <button class="modal-close-btn" @click="closeEditModal">✕</button>
+          </div>
+
+          <div class="edit-modal-body">
+            <div class="field" :class="{ invalid: errors.nome }">
+              <label>Nome Completo <span class="required">*</span></label>
+              <input type="text" v-model="form.nome" @input="errors.nome = ''" />
+              <span class="field-error">{{ errors.nome }}</span>
+            </div>
+
+            <div class="field-grid field-grid-2" style="margin-top:14px">
+              <div class="field" :class="{ invalid: errors.matricula }">
+                <label>Nº Matrícula <span class="required">*</span></label>
+                <input type="text" v-model="form.matricula" @input="errors.matricula = ''" />
+                <span class="field-error">{{ errors.matricula }}</span>
+              </div>
+              <div class="field" :class="{ invalid: errors.cpf }">
+                <label>CPF <span class="required">*</span></label>
+                <input type="text" v-model="form.cpf" maxlength="14" @input="onCpfInput" />
+                <span class="field-error">{{ errors.cpf }}</span>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:14px" :class="{ invalid: errors.email }">
+              <label>E-mail <span class="required">*</span></label>
+              <input type="text" v-model="form.email" @input="errors.email = ''" />
+              <span class="field-error">{{ errors.email }}</span>
+            </div>
+
+            <div class="field-grid field-grid-2" style="margin-top:14px">
+              <div class="field" :class="{ invalid: errors.departamento }">
+                <label>Departamento <span class="required">*</span></label>
+                <div class="select-wrap">
+                  <select v-model="form.departamento" @change="errors.departamento = ''">
+                    <option value="">Selecionar departamento...</option>
+                    <option>Produção</option>
+                    <option>Manutenção</option>
+                    <option>Logística</option>
+                    <option>Almoxarifado</option>
+                    <option>Segurança do Trabalho</option>
+                    <option>Recursos Humanos</option>
+                    <option>Administrativo</option>
+                    <option>Financeiro</option>
+                    <option>Tecnologia da Informação</option>
+                    <option>Qualidade</option>
+                  </select>
+                </div>
+                <span class="field-error">{{ errors.departamento }}</span>
+              </div>
+              <div class="field" :class="{ invalid: errors.cargo }">
+                <label>Cargo <span class="required">*</span></label>
+                <input type="text" v-model="form.cargo" @input="errors.cargo = ''" />
+                <span class="field-error">{{ errors.cargo }}</span>
+              </div>
+            </div>
+
+            <div v-if="apiError" class="api-error" style="margin-top:12px">
+              <i class="fas fa-exclamation-triangle"></i> {{ apiError }}
+            </div>
+          </div>
+
+          <div class="edit-modal-footer">
+            <button class="btn btn-ghost" @click="closeEditModal">Cancelar</button>
+            <button class="btn btn-primary" @click="submitForm" :disabled="submitting">
+              <span v-if="submitting" class="spinner"></span>
+              <i v-else class="fas fa-save"></i>
+              {{ submitting ? 'Salvando...' : 'Salvar Alterações' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Modal sucesso -->
     <Transition name="fade">
       <div v-if="showSuccess" class="success-overlay" @click="closeSuccess">
@@ -253,6 +336,7 @@ const { supabase } = useSupabase()
 
 const submitting          = ref(false)
 const showSuccess         = ref(false)
+const showEditModal       = ref(false)
 const apiError            = ref('')
 const docCounter          = ref(1)
 const lastSaved           = ref({})
@@ -406,9 +490,15 @@ function editRecord(f) {
     departamento: f.departamento,
     cargo:        f.cargo,
   })
-  editingId.value = f.id
-  apiError.value  = ''
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  Object.keys(errors).forEach(k => (errors[k] = ''))
+  editingId.value     = f.id
+  apiError.value      = ''
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  resetForm()
 }
 
 // ─── Reset ─────────────────────────────────────────────────────────────────
@@ -421,9 +511,10 @@ function resetForm() {
 }
 
 function closeSuccess() {
-  showSuccess.value = false
+  showSuccess.value   = false
+  showEditModal.value = false
   if (!editingId.value) docCounter.value++
-  editingId.value   = null
+  editingId.value     = null
   resetForm()
   fetchFuncionarios()
 }
@@ -847,6 +938,56 @@ select:focus {
 
 .success-info-label { color: var(--ink-soft); }
 .success-info-value { color: #93C5FD; font-weight: 600; }
+
+/* ── Modal de Edição ─────────────────────────────────────────────────────── */
+.edit-modal {
+  background: #161B27;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 540px;
+  animation: popIn 0.35s cubic-bezier(0.16,1,0.3,1);
+  overflow: hidden;
+}
+
+.edit-modal-header {
+  background: #0F172A;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.edit-modal-title { flex: 1; }
+.edit-modal-title h3 { font-size: 15px; font-weight: 700; color: #fff; margin: 0; }
+.edit-modal-title p  { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+.modal-close-btn {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 13px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.modal-close-btn:hover { background: rgba(239,68,68,0.1); border-color: var(--red); color: var(--red); }
+
+.edit-modal-body { padding: 20px; }
+
+.edit-modal-footer {
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
 
 /* ── Transitions & Animations ───────────────────────────────────────────── */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.25s; }

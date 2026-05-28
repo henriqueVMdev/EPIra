@@ -258,6 +258,111 @@
       ⚠ {{ apiError }}
     </div>
 
+    <!-- Modal de Edição -->
+    <Transition name="fade">
+      <div v-if="showEditModal" class="success-overlay" @click="closeEditModal">
+        <div class="edit-modal" @click.stop>
+          <div class="edit-modal-header">
+            <div class="card-header-icon" style="font-size:16px">✏️</div>
+            <div class="edit-modal-title">
+              <h3>Editar Movimentação</h3>
+              <p>Altere os dados e salve as alterações</p>
+            </div>
+            <button class="modal-close-btn" @click="closeEditModal">✕</button>
+          </div>
+
+          <div class="edit-modal-body">
+            <div class="field-grid field-grid-2">
+              <div class="field" :class="{ invalid: errors.funcionario }">
+                <label>Funcionário <span class="required">*</span></label>
+                <div class="select-wrap">
+                  <select v-model="form.funcionario" @change="errors.funcionario = ''">
+                    <option value="">Selecionar funcionário...</option>
+                    <option v-for="f in funcionarios" :key="f.id" :value="f.nome">
+                      {{ f.matricula ? f.matricula + ' — ' : '' }}{{ f.nome }}
+                    </option>
+                  </select>
+                </div>
+                <span class="field-error">{{ errors.funcionario }}</span>
+              </div>
+
+              <div class="field" :class="{ invalid: errors.tipo }">
+                <label>Tipo de Movimentação <span class="required">*</span></label>
+                <div class="select-wrap">
+                  <select v-model="form.tipo" @change="errors.tipo = ''">
+                    <option value="">Selecionar tipo...</option>
+                    <option value="entrega">Entrega</option>
+                    <option value="devolucao">Devolução</option>
+                  </select>
+                </div>
+                <span class="field-error">{{ errors.tipo }}</span>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:14px" :class="{ invalid: errors.epi_id }">
+              <label>Tipo de EPI <span class="required">*</span></label>
+              <div class="select-wrap">
+                <select v-model="form.epi_id" @change="errors.epi_id = ''">
+                  <option value="">Selecionar EPI...</option>
+                  <option v-for="epi in epis" :key="epi.id" :value="epi.id">
+                    {{ epi.nome }}{{ epi.ca ? ' — CA ' + epi.ca : '' }}
+                  </option>
+                </select>
+              </div>
+              <span class="field-error">{{ errors.epi_id }}</span>
+            </div>
+
+            <div class="field-grid field-grid-2" style="margin-top:14px">
+              <div class="field" :class="{ invalid: errors.quantidade }">
+                <label>Quantidade <span class="required">*</span></label>
+                <div class="qty-wrap">
+                  <button type="button" class="qty-btn" @click="decQty">−</button>
+                  <input type="number" v-model.number="form.quantidade" min="1" max="999" @input="errors.quantidade = ''" />
+                  <button type="button" class="qty-btn" @click="incQty">+</button>
+                </div>
+                <span class="field-error">{{ errors.quantidade }}</span>
+              </div>
+              <div class="field" :class="{ invalid: errors.data }">
+                <label>Data <span class="required">*</span></label>
+                <input type="date" v-model="form.data" @change="errors.data = ''" />
+                <span class="field-error">{{ errors.data }}</span>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:14px">
+              <label>Observações</label>
+              <textarea v-model="form.observacoes" placeholder="Observações adicionais..." style="min-height:60px" />
+            </div>
+
+            <div
+              class="signature-block"
+              style="margin-top:14px"
+              :class="{ checked: form.assinatura_confirmada }"
+              @click="form.assinatura_confirmada = !form.assinatura_confirmada; errors.assinatura_confirmada = ''"
+            >
+              <div class="sig-checkbox"><span class="sig-checkmark">✓</span></div>
+              <div class="sig-text">
+                <div class="sig-title">{{ form.assinatura_confirmada ? '✓ Assinatura Digital Confirmada' : 'Assinatura Digital Confirmada' }}</div>
+              </div>
+              <div class="sig-icon">✍️</div>
+            </div>
+            <span v-if="errors.assinatura_confirmada" class="field-error" style="display:block;margin-top:6px">{{ errors.assinatura_confirmada }}</span>
+
+            <div v-if="apiError" class="api-error" style="margin-top:12px">⚠ {{ apiError }}</div>
+          </div>
+
+          <div class="edit-modal-footer">
+            <button class="btn btn-ghost" @click="closeEditModal">Cancelar</button>
+            <button class="btn btn-primary" @click="submitForm" :disabled="submitting">
+              <span v-if="submitting" class="spinner"></span>
+              <span v-else>✓</span>
+              {{ submitting ? 'Salvando...' : 'Salvar Alterações' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Modal de sucesso -->
     <Transition name="fade">
       <div v-if="showSuccess" class="success-overlay" @click="closeSuccess">
@@ -287,6 +392,7 @@ const epis                  = ref([])
 const loadingEpis           = ref(false)
 const submitting            = ref(false)
 const showSuccess           = ref(false)
+const showEditModal         = ref(false)
 const apiError              = ref('')
 const docCounter            = ref(1)
 const lastProtocol          = ref('')
@@ -468,9 +574,15 @@ function editRecord(m) {
     observacoes:           m.observacoes || '',
     assinatura_confirmada: m.assinatura_confirmada,
   })
-  editingId.value = m.id
-  apiError.value  = ''
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  Object.keys(errors).forEach(k => (errors[k] = ''))
+  editingId.value     = m.id
+  apiError.value      = ''
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  resetForm()
 }
 
 // ─── Validade ──────────────────────────────────────────────────────────────
@@ -498,9 +610,10 @@ function resetForm() {
 }
 
 function closeSuccess() {
-  showSuccess.value = false
+  showSuccess.value   = false
+  showEditModal.value = false
   if (!editingId.value) docCounter.value++
-  editingId.value   = null
+  editingId.value     = null
   resetForm()
   fetchMovimentacoes()
 }
@@ -1017,6 +1130,62 @@ textarea:focus {
   color: #93C5FD;
   font-weight: 700;
   letter-spacing: 0.05em;
+}
+
+/* ── Modal de Edição ─────────────────────────────────────────────────────── */
+.edit-modal {
+  background: #161B27;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: popIn 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+
+.edit-modal-header {
+  background: #0F172A;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.edit-modal-title { flex: 1; }
+.edit-modal-title h3 { font-size: 15px; font-weight: 700; color: #fff; margin: 0; }
+.edit-modal-title p  { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+.modal-close-btn {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 13px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.modal-close-btn:hover { background: rgba(239,68,68,0.1); border-color: var(--red); color: var(--red); }
+
+.edit-modal-body { padding: 20px; }
+
+.edit-modal-footer {
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  position: sticky;
+  bottom: 0;
 }
 
 /* ── Transitions ─────────────────────────────────────────────────────────── */

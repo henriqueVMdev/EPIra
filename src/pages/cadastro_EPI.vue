@@ -252,6 +252,86 @@
       ⚠ {{ apiError }}
     </div>
 
+    <!-- Modal de Edição -->
+    <Transition name="fade">
+      <div v-if="showEditModal" class="success-overlay" @click="closeEditModal">
+        <div class="edit-modal" @click.stop>
+          <div class="edit-modal-header">
+            <div class="card-header-icon" style="font-size:16px">✏️</div>
+            <div class="edit-modal-title">
+              <h3>Editar EPI</h3>
+              <p>Altere os dados e salve as alterações</p>
+            </div>
+            <button class="modal-close-btn" @click="closeEditModal">✕</button>
+          </div>
+
+          <div class="edit-modal-body">
+            <div class="field" :class="{ invalid: errors.nome }">
+              <label>Nome do EPI <span class="required">*</span></label>
+              <input type="text" v-model="form.nome" @input="errors.nome = ''" />
+              <span class="field-error">{{ errors.nome }}</span>
+            </div>
+
+            <div class="field-grid field-grid-2" style="margin-top:14px">
+              <div class="field" :class="{ invalid: errors.categoria }">
+                <label>Categoria <span class="required">*</span></label>
+                <div class="select-wrap">
+                  <select v-model="form.categoria" @change="errors.categoria = ''">
+                    <option value="">Selecione uma categoria</option>
+                    <option>Capacete</option>
+                    <option>Luva</option>
+                    <option>Óculos</option>
+                    <option>Botina</option>
+                    <option>Protetor Auricular</option>
+                    <option>Máscara</option>
+                    <option>Cinto de Segurança</option>
+                    <option>Outro</option>
+                  </select>
+                </div>
+                <span class="field-error">{{ errors.categoria }}</span>
+              </div>
+              <div class="field">
+                <label>Número do CA</label>
+                <input type="text" v-model="form.ca" placeholder="Ex: 12345" />
+              </div>
+            </div>
+
+            <div class="field-grid field-grid-2" style="margin-top:14px">
+              <div class="field">
+                <label>Validade do CA</label>
+                <input type="date" v-model="form.validade" />
+              </div>
+              <div class="field" :class="{ invalid: errors.quantidade }">
+                <label>Quantidade em Estoque <span class="required">*</span></label>
+                <div class="qty-wrap">
+                  <button type="button" class="qty-btn" @click="decQty">−</button>
+                  <input type="number" v-model.number="form.quantidade" min="0" max="9999" @input="errors.quantidade = ''" />
+                  <button type="button" class="qty-btn" @click="incQty">+</button>
+                </div>
+                <span class="field-error">{{ errors.quantidade }}</span>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:14px">
+              <label>Observações</label>
+              <textarea v-model="form.obs" placeholder="Informações adicionais..." style="min-height:60px" />
+            </div>
+
+            <div v-if="apiError" class="api-error" style="margin-top:12px">⚠ {{ apiError }}</div>
+          </div>
+
+          <div class="edit-modal-footer">
+            <button class="btn btn-ghost" @click="closeEditModal">Cancelar</button>
+            <button class="btn btn-primary" @click="cadastrar" :disabled="submitting">
+              <span v-if="submitting" class="spinner"></span>
+              <span v-else>✓</span>
+              {{ submitting ? 'Salvando...' : 'Salvar Alterações' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Modal de sucesso -->
     <Transition name="fade">
       <div v-if="showSuccess" class="success-overlay" @click="closeSuccess">
@@ -274,12 +354,13 @@ import { useSupabase } from '@/composables/useSupabase'
 
 const { supabase } = useSupabase()
 
-const submitting   = ref(false)
-const showSuccess  = ref(false)
-const apiError     = ref('')
-const epis         = ref([])
-const loadingEpis  = ref(false)
-const editingId    = ref(null)
+const submitting    = ref(false)
+const showSuccess   = ref(false)
+const showEditModal = ref(false)
+const apiError      = ref('')
+const epis          = ref([])
+const loadingEpis   = ref(false)
+const editingId     = ref(null)
 
 async function fetchEpis() {
   loadingEpis.value = true
@@ -384,9 +465,15 @@ function editRecord(epi) {
     quantidade: epi.quantidade,
     obs:        epi.obs || '',
   })
-  editingId.value = epi.id
-  apiError.value  = ''
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  Object.keys(errors).forEach(k => (errors[k] = ''))
+  editingId.value     = epi.id
+  apiError.value      = ''
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  limpar()
 }
 
 function limpar() {
@@ -397,8 +484,9 @@ function limpar() {
 }
 
 function closeSuccess() {
-  showSuccess.value = false
-  editingId.value   = null
+  showSuccess.value   = false
+  showEditModal.value = false
+  editingId.value     = null
   limpar()
   fetchEpis()
 }
@@ -976,6 +1064,73 @@ textarea:focus {
   color: var(--ink-soft);
   line-height: 1.6;
   margin-bottom: 20px;
+}
+
+/* ── Modal de Edição ─────────────────────────────────────────────────────── */
+.edit-modal {
+  background: #161B27;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 520px;
+  animation: popIn 0.35s cubic-bezier(0.16,1,0.3,1);
+  overflow: hidden;
+}
+
+.edit-modal-header {
+  background: #0F172A;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.edit-modal-title { flex: 1; }
+
+.edit-modal-title h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.edit-modal-title p {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 2px;
+}
+
+.modal-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 13px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.modal-close-btn:hover {
+  background: rgba(239,68,68,0.1);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.edit-modal-body { padding: 20px; }
+
+.edit-modal-footer {
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 /* ── Transitions ─────────────────────────────────────────────────────────── */
