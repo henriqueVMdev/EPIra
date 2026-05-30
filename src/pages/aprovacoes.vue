@@ -119,7 +119,7 @@ async function carregar() {
   apiError.value = ''
   const { data, error } = await supabase
     .from('solicitacoes_epi')
-    .select('id, quantidade, justificativa, status, motivo_recusa, criado_em, decidido_em, epis(nome, ca), solicitante:profiles(nome, email, cargo)')
+    .select('id, quantidade, justificativa, status, motivo_recusa, criado_em, decidido_em, epis(nome, ca), solicitante:profiles!solicitacoes_epi_solicitante_id_fkey(nome, email, cargo)')
     .order('criado_em', { ascending: false })
   if (error) apiError.value = 'Erro ao carregar solicitações: ' + error.message
   else solicitacoes.value = data ?? []
