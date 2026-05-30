@@ -2,8 +2,8 @@
   <div class="epi-page">
     <!-- Header -->
     <div class="page-header">
-      <h1>Registro de Entrega de <span>EPI</span></h1>
-      <p class="subtitle">Preencha os dados abaixo para registrar a entrega do equipamento de proteção individual.</p>
+      <h1>Registro de {{ isDevolucao ? 'Devolução' : 'Entrega' }} de <span>EPI</span></h1>
+      <p class="subtitle">Preencha os dados abaixo para registrar a {{ isDevolucao ? 'devolução' : 'entrega' }} do equipamento de proteção individual.</p>
     </div>
 
     <!-- Card -->
@@ -11,7 +11,7 @@
       <div class="card-header">
         <div class="card-header-icon">🦺</div>
         <div class="card-header-text">
-          <h2>Ficha de Entrega de EPI</h2>
+          <h2>{{ isDevolucao ? 'Ficha de Devolução de EPI' : 'Ficha de Entrega de EPI' }}</h2>
           <p>Todos os campos marcados com * são obrigatórios</p>
         </div>
         <div class="doc-number">Nº {{ docNumber }}</div>
@@ -63,6 +63,19 @@
                 <span class="field-error">{{ errors.tipo }}</span>
               </div>
 
+              <div v-if="isDevolucao" class="field" :class="{ invalid: errors.condicao }">
+                <label for="condicao">Condição do EPI <span class="required">*</span></label>
+                <div class="select-wrap">
+                  <select id="condicao" v-model="form.condicao" @change="errors.condicao = ''">
+                    <option value="">Selecionar condição...</option>
+                    <option value="bom">Bom estado</option>
+                    <option value="danificado">Danificado</option>
+                    <option value="descarte">Para descarte</option>
+                  </select>
+                </div>
+                <span class="field-error">{{ errors.condicao }}</span>
+              </div>
+
               <div class="field" :class="{ invalid: errors.epi_id }">
                 <label for="epi">Tipo de EPI <span class="required">*</span></label>
                 <div class="select-wrap">
@@ -102,7 +115,7 @@
                     />
                     <button type="button" class="qty-btn" @click="incQty">+</button>
                   </div>
-                  <span class="field-hint">Unidades entregues</span>
+                  <span class="field-hint">{{ isDevolucao ? 'Unidades devolvidas' : 'Unidades entregues' }}</span>
                   <span class="field-error">{{ errors.quantidade }}</span>
                 </div>
 
@@ -152,8 +165,9 @@
                   {{ form.assinatura_confirmada ? '✓ Assinatura Digital Confirmada' : 'Assinatura Digital Confirmada' }}
                 </div>
                 <div class="sig-desc">
-                  Confirmo que recebi o(s) EPI(s) listado(s) acima em perfeito estado de conservação,
-                  fui orientado quanto ao seu uso correto e me comprometo a utilizá-lo(s) sempre que necessário.
+                  {{ isDevolucao
+                    ? 'Confirmo que devolvi o(s) EPI(s) listado(s) acima e declaro que as condições informadas são verdadeiras.'
+                    : 'Confirmo que recebi o(s) EPI(s) listado(s) acima em perfeito estado de conservação, fui orientado quanto ao seu uso correto e me comprometo a utilizá-lo(s) sempre que necessário.' }}
                 </div>
               </div>
               <div class="sig-icon">✍️</div>
@@ -180,7 +194,7 @@
           >
             <span v-if="submitting" class="spinner"></span>
             <span v-else>✓</span>
-            {{ submitting ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Registrar Entrega' }}
+            {{ submitting ? 'Salvando...' : editingId ? 'Salvar Alterações' : isDevolucao ? 'Registrar Devolução' : 'Registrar Entrega' }}
           </button>
         </div>
       </div>
@@ -212,6 +226,7 @@
               <th>Funcionário</th>
               <th class="col-center">Tipo</th>
               <th>EPI</th>
+              <th>Validade (CA)</th>
               <th class="col-center">Qtd.</th>
               <th>Data</th>
               <th class="col-center">Assinatura</th>
@@ -231,6 +246,12 @@
                 {{ m.epis?.nome ?? '—' }}
                 <span v-if="m.epis?.ca" class="td-ca">CA {{ m.epis.ca }}</span>
               </td>
+              <td>
+                <span v-if="m.epis?.validade" :class="validadeClass(m.epis.validade)" class="badge-validade">
+                  {{ formatDate(m.epis.validade) }}
+                </span>
+                <span v-else class="badge-validade validade-sem">—</span>
+              </td>
               <td class="col-center td-qty">{{ m.quantidade }}</td>
               <td class="td-mono">{{ m.data ? new Date(m.data + 'T00:00:00').toLocaleDateString('pt-BR') : '—' }}</td>
               <td class="col-center">
@@ -239,7 +260,10 @@
                 </span>
               </td>
               <td class="td-obs">{{ m.observacoes || '—' }}</td>
-              <td><button class="btn-edit" @click="editRecord(m)"><i class="fas fa-pencil-alt"></i> Editar</button></td>
+              <td class="td-actions">
+                <button class="btn-edit" @click="editRecord(m)"><i class="fas fa-pencil-alt"></i> Editar</button>
+                <button class="btn-delete" @click="confirmDelete(m)"><i class="fas fa-trash-alt"></i> Excluir</button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -251,13 +275,156 @@
       ⚠ {{ apiError }}
     </div>
 
+    <!-- Modal de Edição -->
+    <Transition name="fade">
+      <div v-if="showEditModal" class="success-overlay" @click="closeEditModal">
+        <div class="edit-modal" @click.stop>
+          <div class="edit-modal-header">
+            <div class="card-header-icon" style="font-size:16px">✏️</div>
+            <div class="edit-modal-title">
+              <h3>Editar Movimentação</h3>
+              <p>Altere os dados e salve as alterações</p>
+            </div>
+            <button class="modal-close-btn" @click="closeEditModal">✕</button>
+          </div>
+
+          <div class="edit-modal-body">
+            <div class="field-grid field-grid-2">
+              <div class="field" :class="{ invalid: errors.funcionario }">
+                <label>Funcionário <span class="required">*</span></label>
+                <div class="select-wrap">
+                  <select v-model="form.funcionario" @change="errors.funcionario = ''">
+                    <option value="">Selecionar funcionário...</option>
+                    <option v-for="f in funcionarios" :key="f.id" :value="f.nome">
+                      {{ f.matricula ? f.matricula + ' — ' : '' }}{{ f.nome }}
+                    </option>
+                  </select>
+                </div>
+                <span class="field-error">{{ errors.funcionario }}</span>
+              </div>
+
+              <div class="field" :class="{ invalid: errors.tipo }">
+                <label>Tipo de Movimentação <span class="required">*</span></label>
+                <div class="select-wrap">
+                  <select v-model="form.tipo" @change="errors.tipo = ''">
+                    <option value="">Selecionar tipo...</option>
+                    <option value="entrega">Entrega</option>
+                    <option value="devolucao">Devolução</option>
+                  </select>
+                </div>
+                <span class="field-error">{{ errors.tipo }}</span>
+              </div>
+            </div>
+
+            <div v-if="form.tipo === 'devolucao'" class="field" style="margin-top:14px" :class="{ invalid: errors.condicao }">
+              <label>Condição do EPI</label>
+              <div class="select-wrap">
+                <select v-model="form.condicao" @change="errors.condicao = ''">
+                  <option value="">Selecionar condição...</option>
+                  <option value="bom">Bom estado</option>
+                  <option value="danificado">Danificado</option>
+                  <option value="descarte">Para descarte</option>
+                </select>
+              </div>
+              <span class="field-error">{{ errors.condicao }}</span>
+            </div>
+
+            <div class="field" style="margin-top:14px" :class="{ invalid: errors.epi_id }">
+              <label>Tipo de EPI <span class="required">*</span></label>
+              <div class="select-wrap">
+                <select v-model="form.epi_id" @change="errors.epi_id = ''">
+                  <option value="">Selecionar EPI...</option>
+                  <option v-for="epi in epis" :key="epi.id" :value="epi.id">
+                    {{ epi.nome }}{{ epi.ca ? ' — CA ' + epi.ca : '' }}
+                  </option>
+                </select>
+              </div>
+              <span class="field-error">{{ errors.epi_id }}</span>
+            </div>
+
+            <div class="field-grid field-grid-2" style="margin-top:14px">
+              <div class="field" :class="{ invalid: errors.quantidade }">
+                <label>Quantidade <span class="required">*</span></label>
+                <div class="qty-wrap">
+                  <button type="button" class="qty-btn" @click="decQty">−</button>
+                  <input type="number" v-model.number="form.quantidade" min="1" max="999" @input="errors.quantidade = ''" />
+                  <button type="button" class="qty-btn" @click="incQty">+</button>
+                </div>
+                <span class="field-error">{{ errors.quantidade }}</span>
+              </div>
+              <div class="field" :class="{ invalid: errors.data }">
+                <label>Data <span class="required">*</span></label>
+                <input type="date" v-model="form.data" @change="errors.data = ''" />
+                <span class="field-error">{{ errors.data }}</span>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:14px">
+              <label>Observações</label>
+              <textarea v-model="form.observacoes" placeholder="Observações adicionais..." style="min-height:60px" />
+            </div>
+
+            <div
+              class="signature-block"
+              style="margin-top:14px"
+              :class="{ checked: form.assinatura_confirmada }"
+              @click="form.assinatura_confirmada = !form.assinatura_confirmada; errors.assinatura_confirmada = ''"
+            >
+              <div class="sig-checkbox"><span class="sig-checkmark">✓</span></div>
+              <div class="sig-text">
+                <div class="sig-title">{{ form.assinatura_confirmada ? '✓ Assinatura Digital Confirmada' : 'Assinatura Digital Confirmada' }}</div>
+              </div>
+              <div class="sig-icon">✍️</div>
+            </div>
+            <span v-if="errors.assinatura_confirmada" class="field-error" style="display:block;margin-top:6px">{{ errors.assinatura_confirmada }}</span>
+
+            <div v-if="apiError" class="api-error" style="margin-top:12px">⚠ {{ apiError }}</div>
+          </div>
+
+          <div class="edit-modal-footer">
+            <button class="btn btn-ghost" @click="closeEditModal">Cancelar</button>
+            <button class="btn btn-primary" @click="submitForm" :disabled="submitting">
+              <span v-if="submitting" class="spinner"></span>
+              <span v-else>✓</span>
+              {{ submitting ? 'Salvando...' : 'Salvar Alterações' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Modal de confirmação de exclusão -->
+    <Transition name="fade">
+      <div v-if="showDeleteModal" class="success-overlay" @click="cancelDelete">
+        <div class="delete-modal" @click.stop>
+          <div class="delete-modal-icon"><i class="fas fa-trash-alt"></i></div>
+          <h3>Excluir Movimentação</h3>
+          <p>
+            Tem certeza que deseja excluir o registro de
+            <strong>{{ deletingItem?.tipo === 'devolucao' ? 'devolução' : 'entrega' }}</strong>
+            de <strong>{{ deletingItem?.epis?.nome || 'EPI' }}</strong>
+            para <strong>{{ deletingItem?.funcionario }}</strong>?
+            Esta ação não pode ser desfeita.
+          </p>
+          <div class="delete-modal-actions">
+            <button class="btn btn-ghost" @click="cancelDelete">Cancelar</button>
+            <button class="btn btn-danger" @click="executeDelete" :disabled="deleting">
+              <span v-if="deleting" class="spinner"></span>
+              <i v-else class="fas fa-trash-alt"></i>
+              {{ deleting ? 'Excluindo...' : 'Excluir' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Modal de sucesso -->
     <Transition name="fade">
       <div v-if="showSuccess" class="success-overlay" @click="closeSuccess">
         <div class="success-card" @click.stop>
           <div class="success-icon">✅</div>
-          <h3>Entrega Registrada!</h3>
-          <p>O registro de entrega do EPI foi salvo com sucesso e vinculado ao prontuário do funcionário.</p>
+          <h3>{{ lastTipo === 'devolucao' ? 'Devolução Registrada!' : 'Entrega Registrada!' }}</h3>
+          <p>{{ lastTipo === 'devolucao' ? 'O registro de devolução do EPI foi salvo com sucesso e o estoque foi atualizado.' : 'O registro de entrega do EPI foi salvo com sucesso e vinculado ao prontuário do funcionário.' }}</p>
           <div class="success-protocol">Protocolo: #EPI-{{ lastProtocol }}</div>
           <button class="btn btn-primary" style="width:100%;justify-content:center" @click="closeSuccess">
             Novo Registro
@@ -269,7 +436,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useSupabase } from '@/composables/useSupabase'
 
 const { supabase } = useSupabase()
@@ -280,9 +447,14 @@ const epis                  = ref([])
 const loadingEpis           = ref(false)
 const submitting            = ref(false)
 const showSuccess           = ref(false)
+const showEditModal         = ref(false)
+const showDeleteModal       = ref(false)
+const deletingItem          = ref(null)
+const deleting              = ref(false)
 const apiError              = ref('')
 const docCounter            = ref(1)
 const lastProtocol          = ref('')
+const lastTipo              = ref('entrega')
 const movimentacoes         = ref([])
 const loadingMovimentacoes  = ref(false)
 const editingId             = ref(null)
@@ -299,6 +471,7 @@ const initialForm = () => ({
   data:                  today,
   observacoes:           '',
   assinatura_confirmada: false,
+  condicao:              '',
 })
 
 const form   = reactive(initialForm())
@@ -309,10 +482,12 @@ const errors = reactive({
   quantidade:            '',
   data:                  '',
   assinatura_confirmada: '',
+  condicao:              '',
 })
 
 // ─── Computed ──────────────────────────────────────────────────────────────
-import { computed } from 'vue'
+const isEntrega   = computed(() => form.tipo !== 'devolucao')
+const isDevolucao = computed(() => form.tipo === 'devolucao')
 
 // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -367,7 +542,7 @@ async function fetchMovimentacoes() {
   loadingMovimentacoes.value = true
   const { data, error } = await supabase
     .from('movimentacoes')
-    .select('id, funcionario, tipo, quantidade, data, assinatura_confirmada, observacoes, epis(nome, ca)')
+    .select('id, funcionario, tipo, quantidade, data, assinatura_confirmada, observacoes, epis(nome, ca, validade)')
     .order('data', { ascending: false })
   if (error) {
     apiError.value = 'Erro ao carregar movimentações: ' + error.message
@@ -411,6 +586,10 @@ function validate() {
     errors.assinatura_confirmada = 'É necessário confirmar a assinatura digital.'
     ok = false
   }
+  if (form.tipo === 'devolucao' && !form.condicao) {
+    errors.condicao = 'Informe a condição do EPI devolvido.'
+    ok = false
+  }
 
   return ok
 }
@@ -423,13 +602,20 @@ async function submitForm() {
 
   submitting.value = true
   try {
+    const condLabels = { bom: 'Bom estado', danificado: 'Danificado', descarte: 'Para descarte' }
+    let obsTexto = form.observacoes || null
+    if (form.tipo === 'devolucao' && form.condicao) {
+      const label = condLabels[form.condicao]
+      obsTexto = `${label}${form.observacoes ? ' — ' + form.observacoes : ''}`
+    }
+
     const payload = {
       funcionario:           form.funcionario.trim(),
       tipo:                  form.tipo,
       epi_id:                form.epi_id,
       quantidade:            form.quantidade,
       data:                  form.data,
-      observacoes:           form.observacoes || null,
+      observacoes:           obsTexto,
       assinatura_confirmada: form.assinatura_confirmada,
     }
 
@@ -442,6 +628,14 @@ async function submitForm() {
 
     if (error) throw error
 
+    if (!editingId.value) {
+      const { data: epiAtual } = await supabase.from('epis').select('quantidade').eq('id', form.epi_id).single()
+      const delta   = form.tipo === 'entrega' ? -form.quantidade : form.quantidade
+      const novaQtd = Math.max(0, (epiAtual?.quantidade ?? 0) + delta)
+      await supabase.from('epis').update({ quantidade: novaQtd }).eq('id', form.epi_id)
+    }
+
+    lastTipo.value     = form.tipo
     lastProtocol.value = String(docCounter.value).padStart(6, '0')
     showSuccess.value  = true
   } catch (e) {
@@ -461,9 +655,30 @@ function editRecord(m) {
     observacoes:           m.observacoes || '',
     assinatura_confirmada: m.assinatura_confirmada,
   })
-  editingId.value = m.id
-  apiError.value  = ''
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  Object.keys(errors).forEach(k => (errors[k] = ''))
+  editingId.value     = m.id
+  apiError.value      = ''
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  resetForm()
+}
+
+// ─── Validade ──────────────────────────────────────────────────────────────
+
+function formatDate(date) {
+  return new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')
+}
+
+function validadeClass(date) {
+  const hoje    = new Date()
+  const validade = new Date(date + 'T00:00:00')
+  const diff    = (validade - hoje) / (1000 * 60 * 60 * 24)
+  if (diff < 0)   return 'validade-vencida'
+  if (diff <= 30) return 'validade-alerta'
+  return 'validade-ok'
 }
 
 // ─── Reset / Fechar modal ──────────────────────────────────────────────────
@@ -476,11 +691,38 @@ function resetForm() {
 }
 
 function closeSuccess() {
-  showSuccess.value = false
+  showSuccess.value   = false
+  showEditModal.value = false
   if (!editingId.value) docCounter.value++
-  editingId.value   = null
+  editingId.value     = null
   resetForm()
   fetchMovimentacoes()
+}
+
+function confirmDelete(m) {
+  deletingItem.value    = m
+  showDeleteModal.value = true
+}
+
+async function executeDelete() {
+  if (!deletingItem.value) return
+  deleting.value = true
+  try {
+    const { error } = await supabase.from('movimentacoes').delete().eq('id', deletingItem.value.id)
+    if (error) throw error
+    showDeleteModal.value = false
+    deletingItem.value    = null
+    await fetchMovimentacoes()
+  } catch (e) {
+    apiError.value = 'Erro ao excluir: ' + e.message
+  } finally {
+    deleting.value = false
+  }
+}
+
+function cancelDelete() {
+  showDeleteModal.value = false
+  deletingItem.value    = null
 }
 </script>
 
@@ -997,6 +1239,62 @@ textarea:focus {
   letter-spacing: 0.05em;
 }
 
+/* ── Modal de Edição ─────────────────────────────────────────────────────── */
+.edit-modal {
+  background: #161B27;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: popIn 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+
+.edit-modal-header {
+  background: #0F172A;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.edit-modal-title { flex: 1; }
+.edit-modal-title h3 { font-size: 15px; font-weight: 700; color: #fff; margin: 0; }
+.edit-modal-title p  { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+.modal-close-btn {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 13px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.modal-close-btn:hover { background: rgba(239,68,68,0.1); border-color: var(--red); color: var(--red); }
+
+.edit-modal-body { padding: 20px; }
+
+.edit-modal-footer {
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  position: sticky;
+  bottom: 0;
+}
+
 /* ── Transitions ─────────────────────────────────────────────────────────── */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.25s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
@@ -1160,6 +1458,21 @@ td {
 .ass-ok { background: rgba(34,197,94,0.12);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
 .ass-no { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
 
+.badge-validade {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-family: 'Courier New', monospace;
+}
+
+.validade-ok      { background: rgba(34,197,94,0.12);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+.validade-alerta  { background: rgba(234,179,8,0.12);  color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+.validade-vencida { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+.validade-sem     { color: var(--ink-soft); }
+
 .btn-edit {
   display: inline-flex;
   align-items: center;
@@ -1181,4 +1494,94 @@ td {
   color: var(--blue-mid);
   background: rgba(59,130,246,0.08);
 }
+
+.td-actions { display: flex; gap: 6px; align-items: center; }
+
+.btn-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-delete:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: rgba(239,68,68,0.08);
+}
+
+.delete-modal {
+  background: #161B27;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 40px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  animation: popIn 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+
+.delete-modal-icon {
+  width: 56px;
+  height: 56px;
+  background: rgba(239,68,68,0.15);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  color: var(--red);
+  margin: 0 auto 18px;
+}
+
+.delete-modal h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 10px;
+}
+
+.delete-modal p {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.delete-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn-danger {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  background: var(--red);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: inherit;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(239,68,68,0.35);
+}
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+.btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>
