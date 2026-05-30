@@ -141,6 +141,48 @@
       </div>
     </div>
 
+    <!-- Alertas de Validade -->
+    <div v-if="alertas.length > 0" class="alertas-card">
+      <div class="alertas-header">
+        <div class="alertas-icon">⚠️</div>
+        <div class="alertas-header-text">
+          <h2>Alertas de Validade (CA)</h2>
+          <p>{{ alertas.length }} EPI{{ alertas.length !== 1 ? 's' : '' }} requer{{ alertas.length === 1 ? '' : 'em' }} atenção imediata</p>
+        </div>
+      </div>
+      <div class="alertas-lista">
+        <div
+          v-for="epi in alertas"
+          :key="epi.id"
+          class="alerta-item"
+          :class="epi._status === 'vencido' ? 'alerta-vencido' : 'alerta-alerta'"
+        >
+          <div class="alerta-left">
+            <span class="alerta-badge" :class="epi._status === 'vencido' ? 'badge-vencido' : 'badge-alerta'">
+              {{ epi._status === 'vencido' ? 'VENCIDO' : 'VENCE EM BREVE' }}
+            </span>
+            <span class="alerta-nome">{{ epi.nome }}</span>
+            <span v-if="epi.ca" class="alerta-ca">CA {{ epi.ca }}</span>
+          </div>
+          <div class="alerta-right">
+            <span class="alerta-data">{{ new Date(epi.validade + 'T00:00:00').toLocaleDateString('pt-BR') }}</span>
+            <span class="alerta-dias" :class="epi._status === 'vencido' ? 'dias-vencido' : 'dias-alerta'">
+              {{ epi._dias < 0 ? Math.abs(epi._dias) + (Math.abs(epi._dias) === 1 ? ' dia atrás' : ' dias atrás') : epi._dias + (epi._dias === 1 ? ' dia restante' : ' dias restantes') }}
+            </span>
+            <button class="btn-alerta-edit" @click="editRecord(epi)">Atualizar CA</button>
+          </div>
+        </div>
+      </div>
+      <div class="alertas-legenda">
+        <span class="legenda-item">
+          <span class="legenda-cor cor-vencido"></span> Vencido — CA já passou da data de validade
+        </span>
+        <span class="legenda-item">
+          <span class="legenda-cor cor-alerta"></span> Vence em breve — CA vence nos próximos 30 dias
+        </span>
+      </div>
+    </div>
+
     <!-- Tabela de EPIs cadastrados -->
     <div class="table-card">
       <div class="table-header">
@@ -186,7 +228,10 @@
                 </span>
               </td>
               <td class="td-obs">{{ epi.obs || '—' }}</td>
-              <td><button class="btn-edit" @click="editRecord(epi)"><i class="fas fa-pencil-alt"></i> Editar</button></td>
+              <td class="td-actions">
+                <button class="btn-edit" @click="editRecord(epi)"><i class="fas fa-pencil-alt"></i> Editar</button>
+                <button class="btn-delete" @click="confirmDelete(epi)"><i class="fas fa-trash-alt"></i> Excluir</button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -210,6 +255,86 @@
       ⚠ {{ apiError }}
     </div>
 
+    <!-- Modal de Edição -->
+    <Transition name="fade">
+      <div v-if="showEditModal" class="success-overlay" @click="closeEditModal">
+        <div class="edit-modal" @click.stop>
+          <div class="edit-modal-header">
+            <div class="card-header-icon" style="font-size:16px">✏️</div>
+            <div class="edit-modal-title">
+              <h3>Editar EPI</h3>
+              <p>Altere os dados e salve as alterações</p>
+            </div>
+            <button class="modal-close-btn" @click="closeEditModal">✕</button>
+          </div>
+
+          <div class="edit-modal-body">
+            <div class="field" :class="{ invalid: errors.nome }">
+              <label>Nome do EPI <span class="required">*</span></label>
+              <input type="text" v-model="form.nome" @input="errors.nome = ''" />
+              <span class="field-error">{{ errors.nome }}</span>
+            </div>
+
+            <div class="field-grid field-grid-2" style="margin-top:14px">
+              <div class="field" :class="{ invalid: errors.categoria }">
+                <label>Categoria <span class="required">*</span></label>
+                <div class="select-wrap">
+                  <select v-model="form.categoria" @change="errors.categoria = ''">
+                    <option value="">Selecione uma categoria</option>
+                    <option>Capacete</option>
+                    <option>Luva</option>
+                    <option>Óculos</option>
+                    <option>Botina</option>
+                    <option>Protetor Auricular</option>
+                    <option>Máscara</option>
+                    <option>Cinto de Segurança</option>
+                    <option>Outro</option>
+                  </select>
+                </div>
+                <span class="field-error">{{ errors.categoria }}</span>
+              </div>
+              <div class="field">
+                <label>Número do CA</label>
+                <input type="text" v-model="form.ca" placeholder="Ex: 12345" />
+              </div>
+            </div>
+
+            <div class="field-grid field-grid-2" style="margin-top:14px">
+              <div class="field">
+                <label>Validade do CA</label>
+                <input type="date" v-model="form.validade" />
+              </div>
+              <div class="field" :class="{ invalid: errors.quantidade }">
+                <label>Quantidade em Estoque <span class="required">*</span></label>
+                <div class="qty-wrap">
+                  <button type="button" class="qty-btn" @click="decQty">−</button>
+                  <input type="number" v-model.number="form.quantidade" min="0" max="9999" @input="errors.quantidade = ''" />
+                  <button type="button" class="qty-btn" @click="incQty">+</button>
+                </div>
+                <span class="field-error">{{ errors.quantidade }}</span>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:14px">
+              <label>Observações</label>
+              <textarea v-model="form.obs" placeholder="Informações adicionais..." style="min-height:60px" />
+            </div>
+
+            <div v-if="apiError" class="api-error" style="margin-top:12px">⚠ {{ apiError }}</div>
+          </div>
+
+          <div class="edit-modal-footer">
+            <button class="btn btn-ghost" @click="closeEditModal">Cancelar</button>
+            <button class="btn btn-primary" @click="cadastrar" :disabled="submitting">
+              <span v-if="submitting" class="spinner"></span>
+              <span v-else>✓</span>
+              {{ submitting ? 'Salvando...' : 'Salvar Alterações' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Modal de sucesso -->
     <Transition name="fade">
       <div v-if="showSuccess" class="success-overlay" @click="closeSuccess">
@@ -223,21 +348,45 @@
         </div>
       </div>
     </Transition>
+
+    <!-- Modal de confirmação de exclusão -->
+    <Transition name="fade">
+      <div v-if="showDeleteModal" class="success-overlay" @click="cancelDelete">
+        <div class="delete-modal" @click.stop>
+          <div class="delete-modal-icon"><i class="fas fa-trash-alt"></i></div>
+          <h3>Excluir EPI</h3>
+          <p>Tem certeza que deseja excluir <strong>{{ deletingItem?.nome }}</strong>? Esta ação não pode ser desfeita.</p>
+          <div class="delete-modal-actions">
+            <button class="btn btn-ghost" @click="cancelDelete">Cancelar</button>
+            <button class="btn btn-danger" @click="executeDelete" :disabled="deleting">
+              <span v-if="deleting" class="spinner"></span>
+              <i v-else class="fas fa-trash-alt"></i>
+              {{ deleting ? 'Excluindo...' : 'Excluir' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import { useSupabase } from '@/composables/useSupabase'
 
 const { supabase } = useSupabase()
 
-const submitting   = ref(false)
-const showSuccess  = ref(false)
-const apiError     = ref('')
-const epis         = ref([])
-const loadingEpis  = ref(false)
-const editingId    = ref(null)
+const submitting      = ref(false)
+const showSuccess     = ref(false)
+const showEditModal   = ref(false)
+const showDeleteModal = ref(false)
+const deletingItem    = ref(null)
+const deleting        = ref(false)
+const apiError      = ref('')
+const epis          = ref([])
+const loadingEpis   = ref(false)
+const editingId     = ref(null)
 
 async function fetchEpis() {
   loadingEpis.value = true
@@ -255,6 +404,20 @@ async function fetchEpis() {
 }
 
 onMounted(fetchEpis)
+
+const alertas = computed(() => {
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  return epis.value
+    .filter(e => e.validade)
+    .map(e => {
+      const val  = new Date(e.validade + 'T00:00:00')
+      const diff = Math.ceil((val - hoje) / (1000 * 60 * 60 * 24))
+      return { ...e, _dias: diff, _status: diff < 0 ? 'vencido' : 'alerta' }
+    })
+    .filter(e => e._dias <= 30)
+    .sort((a, b) => a._dias - b._dias)
+})
 
 const initialForm = () => ({
   nome:       '',
@@ -328,9 +491,15 @@ function editRecord(epi) {
     quantidade: epi.quantidade,
     obs:        epi.obs || '',
   })
-  editingId.value = epi.id
-  apiError.value  = ''
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  Object.keys(errors).forEach(k => (errors[k] = ''))
+  editingId.value     = epi.id
+  apiError.value      = ''
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  limpar()
 }
 
 function limpar() {
@@ -341,10 +510,37 @@ function limpar() {
 }
 
 function closeSuccess() {
-  showSuccess.value = false
-  editingId.value   = null
+  showSuccess.value   = false
+  showEditModal.value = false
+  editingId.value     = null
   limpar()
   fetchEpis()
+}
+
+function confirmDelete(epi) {
+  deletingItem.value    = epi
+  showDeleteModal.value = true
+}
+
+async function executeDelete() {
+  if (!deletingItem.value) return
+  deleting.value = true
+  try {
+    const { error } = await supabase.from('epis').delete().eq('id', deletingItem.value.id)
+    if (error) throw error
+    showDeleteModal.value = false
+    deletingItem.value    = null
+    await fetchEpis()
+  } catch (e) {
+    apiError.value = 'Erro ao excluir: ' + e.message
+  } finally {
+    deleting.value = false
+  }
+}
+
+function cancelDelete() {
+  showDeleteModal.value = false
+  deletingItem.value    = null
 }
 </script>
 
@@ -400,6 +596,179 @@ h1 span { color: var(--blue-mid); }
   font-weight: 300;
   line-height: 1.5;
 }
+
+/* ── Alertas de Validade ─────────────────────────────────────────────────── */
+.alertas-card {
+  background: var(--card-bg);
+  border: 1.5px solid rgba(239, 68, 68, 0.35);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(239, 68, 68, 0.1);
+  margin-bottom: 28px;
+  animation: slideUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+.alertas-header {
+  background: rgba(239, 68, 68, 0.08);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.alertas-icon {
+  width: 38px;
+  height: 38px;
+  background: rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.alertas-header-text h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fca5a5;
+  margin: 0;
+}
+
+.alertas-header-text p {
+  font-size: 11px;
+  color: rgba(252, 165, 165, 0.6);
+  margin-top: 2px;
+}
+
+.alertas-lista {
+  display: flex;
+  flex-direction: column;
+}
+
+.alerta-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  border-bottom: 1px solid rgba(30, 41, 59, 0.6);
+  flex-wrap: wrap;
+  transition: background 0.15s;
+}
+
+.alerta-item:last-child { border-bottom: none; }
+
+.alerta-vencido { border-left: 3px solid #ef4444; }
+.alerta-vencido:hover { background: rgba(239, 68, 68, 0.05); }
+
+.alerta-alerta { border-left: 3px solid #f59e0b; }
+.alerta-alerta:hover { background: rgba(245, 158, 11, 0.05); }
+
+.alerta-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.alerta-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.badge-vencido { background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.35); }
+.badge-alerta  { background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.35); }
+
+.alerta-nome {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.alerta-ca {
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-family: 'Courier New', monospace;
+}
+
+.alerta-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.alerta-data {
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+  color: var(--ink-mid);
+}
+
+.alerta-dias {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dias-vencido { color: #f87171; }
+.dias-alerta  { color: #fbbf24; }
+
+.btn-alerta-edit {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--blue-mid);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-alerta-edit:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: var(--blue-mid);
+}
+
+.alertas-legenda {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 24px;
+  background: rgba(15, 23, 42, 0.4);
+  border-top: 1px solid rgba(239, 68, 68, 0.15);
+  flex-wrap: wrap;
+}
+
+.alertas-legenda .legenda-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.alertas-legenda .legenda-cor {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.cor-vencido { background: rgba(239, 68, 68, 0.4);  border: 1px solid #ef4444; }
+.cor-alerta  { background: rgba(245, 158, 11, 0.4); border: 1px solid #f59e0b; }
 
 /* ── Card ───────────────────────────────────────────────────────────────── */
 .card {
@@ -749,6 +1118,73 @@ textarea:focus {
   margin-bottom: 20px;
 }
 
+/* ── Modal de Edição ─────────────────────────────────────────────────────── */
+.edit-modal {
+  background: #161B27;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 520px;
+  animation: popIn 0.35s cubic-bezier(0.16,1,0.3,1);
+  overflow: hidden;
+}
+
+.edit-modal-header {
+  background: #0F172A;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.edit-modal-title { flex: 1; }
+
+.edit-modal-title h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.edit-modal-title p {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 2px;
+}
+
+.modal-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 13px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.modal-close-btn:hover {
+  background: rgba(239,68,68,0.1);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.edit-modal-body { padding: 20px; }
+
+.edit-modal-footer {
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 /* ── Transitions ─────────────────────────────────────────────────────────── */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.25s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
@@ -961,4 +1397,94 @@ tbody tr.row-zero:hover { background: rgba(239,68,68,0.12); }
   color: var(--blue-mid);
   background: rgba(59,130,246,0.08);
 }
+
+.td-actions { display: flex; gap: 6px; align-items: center; }
+
+.btn-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-delete:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: rgba(239,68,68,0.08);
+}
+
+.delete-modal {
+  background: #161B27;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 40px;
+  text-align: center;
+  max-width: 380px;
+  width: 90%;
+  animation: popIn 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+
+.delete-modal-icon {
+  width: 56px;
+  height: 56px;
+  background: rgba(239,68,68,0.15);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  color: var(--red);
+  margin: 0 auto 18px;
+}
+
+.delete-modal h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 10px;
+}
+
+.delete-modal p {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.delete-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn-danger {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  background: var(--red);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: inherit;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(239,68,68,0.35);
+}
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+.btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>

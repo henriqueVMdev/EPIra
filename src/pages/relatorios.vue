@@ -70,89 +70,200 @@
       </div>
     </div>
 
-    <!-- Filtros -->
+    <!-- Tabela de Estoque -->
     <div class="card">
       <div class="card-header">
-        <div class="card-header-icon"><i class="fas fa-filter"></i></div>
+        <div class="card-header-icon"><i class="fas fa-boxes"></i></div>
         <div class="card-header-text">
-          <h2>Filtros</h2>
-          <p>Refine os registros exibidos na tabela abaixo</p>
+          <h2>Estoque de EPIs</h2>
+          <p>{{ estoquesFiltrado.length }} de {{ estoqueProcessado.length }} item{{ estoqueProcessado.length !== 1 ? 's' : '' }}</p>
         </div>
       </div>
-      <div class="card-body">
-        <div class="filter-grid">
-          <div class="field">
-            <label>Funcionário</label>
-            <div class="select-wrap">
-              <select v-model="filtros.funcionario" @change="buscarEntregas">
-                <option value="">Todos os funcionários</option>
-                <option v-for="f in funcionarios" :key="f.id" :value="f.nome">{{ f.nome }}</option>
-              </select>
-            </div>
-          </div>
-          <div class="field">
-            <label>Data Início</label>
-            <input type="date" v-model="filtros.data_inicio" @change="buscarEntregas" />
-          </div>
-          <div class="field">
-            <label>Data Fim</label>
-            <input type="date" v-model="filtros.data_fim" @change="buscarEntregas" />
-          </div>
-          <div class="field">
-            <label>Assinatura</label>
-            <div class="select-wrap">
-              <select v-model="filtros.assinatura" @change="buscarEntregas">
-                <option value="">Todos</option>
-                <option value="true">Confirmada</option>
-                <option value="false">Pendente</option>
-              </select>
-            </div>
+
+      <div class="filters-bar">
+        <div class="field search-field">
+          <input type="text" v-model="filtroNome" placeholder="Buscar por nome do EPI..." />
+        </div>
+        <div class="field">
+          <div class="select-wrap">
+            <select v-model="filtroCategoria">
+              <option value="">Todas as categorias</option>
+              <option value="Capacete">Capacete</option>
+              <option value="Luva">Luva</option>
+              <option value="Óculos">Óculos</option>
+              <option value="Botina">Botina</option>
+              <option value="Protetor Auricular">Protetor Auricular</option>
+              <option value="Máscara">Máscara</option>
+              <option value="Cinto de Segurança">Cinto de Segurança</option>
+              <option value="Outro">Outro</option>
+            </select>
           </div>
         </div>
-        <div class="filter-actions">
-          <button class="btn btn-ghost" @click="limparFiltros">↺ Limpar Filtros</button>
-          <button class="btn btn-secondary" @click="buscarTudo" :disabled="loading">
-            <span v-if="loading" class="spinner"></span>
-            <i v-else class="fas fa-sync-alt"></i>
-            {{ loading ? 'Atualizando...' : 'Atualizar' }}
-          </button>
-          <button class="btn btn-primary" @click="exportarPDF" :disabled="entregas.length === 0">
-            <i class="fas fa-file-pdf"></i>
-            Gerar PDF
-          </button>
+        <div class="field">
+          <div class="select-wrap">
+            <select v-model="filtroStatus">
+              <option value="">Todos os níveis</option>
+              <option value="ok">✓ Estoque OK (≥10)</option>
+              <option value="baixo">⚠ Estoque Baixo (&lt;10)</option>
+              <option value="esgotado">✕ Esgotado</option>
+            </select>
+          </div>
         </div>
+        <div class="field">
+          <div class="select-wrap">
+            <select v-model="filtroValidade">
+              <option value="">Toda validade CA</option>
+              <option value="ok">CA Válido</option>
+              <option value="alerta">Vence em 30 dias</option>
+              <option value="vencida">CA Vencido</option>
+              <option value="sem">Sem CA</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <input type="date" v-model="filtroDataInicio" />
+        </div>
+        <div class="field">
+          <input type="date" v-model="filtroDataFim" />
+        </div>
+        <button class="btn btn-ghost btn-sm" @click="limparFiltrosEstoque">↺ Limpar</button>
+        <button class="btn btn-secondary btn-sm" @click="carregarEstoque" :disabled="loadingEstoque">
+          <span v-if="loadingEstoque" class="spinner"></span>
+          <i v-else class="fas fa-sync-alt"></i>
+          Atualizar
+        </button>
+        <button class="btn btn-primary btn-sm" @click="exportarPDFEstoque" :disabled="estoquesFiltrado.length === 0">
+          <i class="fas fa-file-pdf"></i>
+          Gerar PDF
+        </button>
+      </div>
+
+      <div v-if="loadingEstoque" class="table-loading-row">
+        <span class="spinner"></span> Carregando estoque...
+      </div>
+
+      <div v-else class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>EPI</th>
+              <th>Categoria</th>
+              <th class="text-center">CA</th>
+              <th class="text-center">Validade CA</th>
+              <th class="text-center">Qtd</th>
+              <th class="text-center">Nível</th>
+              <th class="text-center">Cadastrado em</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="estoquesFiltrado.length === 0">
+              <td colspan="7" class="text-center empty-row">
+                <i class="fas fa-inbox"></i>
+                <p>Nenhum EPI encontrado para os filtros aplicados.</p>
+              </td>
+            </tr>
+            <tr v-else v-for="item in estoquesFiltrado" :key="item.id"
+                :class="{ 'row-critico': item.quantidade <= 0, 'row-baixo': item.quantidade > 0 && item.quantidade < 10 }">
+              <td><strong>{{ item.nome }}</strong></td>
+              <td><span class="categoria-tag">{{ item.categoria || '—' }}</span></td>
+              <td class="text-center">
+                <span v-if="item.ca" class="ca-tag">CA {{ item.ca }}</span>
+                <span v-else class="text-soft">—</span>
+              </td>
+              <td class="text-center">
+                <span v-if="item.validade" :class="['badge-validade', validadeEstoqueClass(item.validade)]">
+                  {{ validadeEstoqueLabel(item.validade) }}
+                </span>
+                <span v-else class="text-soft">—</span>
+              </td>
+              <td class="text-center td-qty-estoque">{{ item.quantidade }}</td>
+              <td class="text-center">
+                <span :class="['badge', statusEstoque(item.quantidade).cls]">
+                  {{ statusEstoque(item.quantidade).label }}
+                </span>
+              </td>
+              <td class="text-center td-date">{{ item.created_at ? formatarData(item.created_at) : '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
-    <!-- Tabela -->
-    <div class="card table-card">
+    <!-- Registros de Entrega -->
+    <div class="card">
       <div class="card-header">
         <div class="card-header-icon"><i class="fas fa-list"></i></div>
         <div class="card-header-text">
-          <h2>Registros de Entrega</h2>
+          <h2>Histórico de Movimentações</h2>
           <p>{{ entregas.length }} registro{{ entregas.length !== 1 ? 's' : '' }} encontrado{{ entregas.length !== 1 ? 's' : '' }}</p>
         </div>
       </div>
 
-      <div class="table-wrap">
+      <div class="filters-bar">
+        <div class="field">
+          <div class="select-wrap">
+            <select v-model="filtros.funcionario" @change="buscarEntregas">
+              <option value="">Todos os funcionários</option>
+              <option v-for="f in funcionarios" :key="f.id" :value="f.nome">{{ f.nome }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <div class="select-wrap">
+            <select v-model="filtros.tipo" @change="buscarEntregas">
+              <option value="">Entrega e devolução</option>
+              <option value="entrega">↓ Entrega</option>
+              <option value="devolucao">↑ Devolução</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <div class="select-wrap">
+            <select v-model="filtros.assinatura" @change="buscarEntregas">
+              <option value="">Todas as assinaturas</option>
+              <option value="true">✓ Confirmada</option>
+              <option value="false">⏳ Pendente</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <input type="date" v-model="filtros.data_inicio" @change="buscarEntregas" />
+        </div>
+        <div class="field">
+          <input type="date" v-model="filtros.data_fim" @change="buscarEntregas" />
+        </div>
+        <button class="btn btn-ghost btn-sm" @click="limparFiltros">↺ Limpar</button>
+        <button class="btn btn-secondary btn-sm" @click="buscarEntregas" :disabled="loading">
+          <span v-if="loading" class="spinner"></span>
+          <i v-else class="fas fa-sync-alt"></i>
+          Atualizar
+        </button>
+        <button class="btn btn-primary btn-sm" @click="exportarPDF" :disabled="entregas.length === 0">
+          <i class="fas fa-file-pdf"></i>
+          Gerar PDF
+        </button>
+      </div>
+
+      <div v-if="loading" class="table-loading-row">
+        <span class="spinner"></span> Carregando registros...
+      </div>
+
+      <div v-else class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>Data</th>
               <th>Funcionário</th>
-              <th>EPI Fornecido</th>
+              <th>EPI</th>
+              <th class="text-center">Validade CA</th>
+              <th class="text-center">Tipo</th>
               <th class="text-center">Qtd</th>
               <th class="text-center">Assinatura</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="loading">
-              <td colspan="5" class="text-center loading-row">
-                <span class="spinner"></span> Carregando registros...
-              </td>
-            </tr>
-            <tr v-else-if="entregas.length === 0">
-              <td colspan="5" class="text-center empty-row">
+            <tr v-if="entregas.length === 0">
+              <td colspan="7" class="text-center empty-row">
                 <i class="fas fa-inbox"></i>
                 <p>Nenhum registro encontrado para este filtro.</p>
               </td>
@@ -161,6 +272,17 @@
               <td class="td-date">{{ formatarData(e.data) }}</td>
               <td><strong>{{ e.funcionario || 'Não informado' }}</strong></td>
               <td>{{ e.epis?.nome || 'EPI não vinculado' }}<span v-if="e.epis?.ca" class="ca-tag">CA {{ e.epis.ca }}</span></td>
+              <td class="text-center">
+                <span v-if="e.epis?.validade" :class="['badge-validade', validadeEstoqueClass(e.epis.validade)]">
+                  {{ validadeEstoqueLabel(e.epis.validade) }}
+                </span>
+                <span v-else class="text-soft">—</span>
+              </td>
+              <td class="text-center">
+                <span :class="['badge-tipo', e.tipo === 'entrega' ? 'tipo-entrega' : 'tipo-devolucao']">
+                  {{ e.tipo === 'entrega' ? '↓ Entrega' : '↑ Devolução' }}
+                </span>
+              </td>
               <td class="text-center">{{ e.quantidade }}</td>
               <td class="text-center">
                 <span :class="e.assinatura_confirmada ? 'badge badge-ok' : 'badge badge-warn'">
@@ -202,16 +324,48 @@ let   barChart  = null
 
 const filtros = ref({
   funcionario:  '',
+  tipo:         '',
   data_inicio:  '',
   data_fim:     '',
   assinatura:   '',
 })
+
+const filtroCategoria   = ref('')
+const filtroNome        = ref('')
+const filtroStatus      = ref('')
+const filtroValidade    = ref('')
+const filtroDataInicio  = ref('')
+const filtroDataFim     = ref('')
 
 // ─── Computed ──────────────────────────────────────────────────────────────
 const totalEntregas      = computed(() => entregas.value.length)
 const totalAssinados     = computed(() => entregas.value.filter(e => e.assinatura_confirmada).length)
 const totalPendentes     = computed(() => entregas.value.filter(e => !e.assinatura_confirmada).length)
 const totalEstoqueCritico = computed(() => estoqueProcessado.value.filter(i => i.quantidade <= 5).length)
+const estoquesFiltrado = computed(() =>
+  estoqueProcessado.value.filter(item => {
+    if (filtroNome.value && !item.nome.toLowerCase().includes(filtroNome.value.toLowerCase())) return false
+    if (filtroCategoria.value && item.categoria !== filtroCategoria.value) return false
+    if (filtroStatus.value === 'ok'       && !(item.quantidade >= 10))                           return false
+    if (filtroStatus.value === 'baixo'    && !(item.quantidade > 0 && item.quantidade < 10))     return false
+    if (filtroStatus.value === 'esgotado' && !(item.quantidade <= 0))                            return false
+    if (filtroValidade.value === 'sem' && item.validade)                                         return false
+    if (filtroValidade.value && filtroValidade.value !== 'sem' && !item.validade)                return false
+    if (item.validade && filtroValidade.value && filtroValidade.value !== 'sem') {
+      const diff = (new Date(item.validade + 'T00:00:00') - new Date()) / (1000 * 60 * 60 * 24)
+      if (filtroValidade.value === 'ok'      && !(diff > 30))                return false
+      if (filtroValidade.value === 'alerta'  && !(diff >= 0 && diff <= 30)) return false
+      if (filtroValidade.value === 'vencida' && !(diff < 0))                 return false
+    }
+    if (filtroDataInicio.value && item.created_at) {
+      if (new Date(item.created_at) < new Date(filtroDataInicio.value + 'T00:00:00')) return false
+    }
+    if (filtroDataFim.value && item.created_at) {
+      if (new Date(item.created_at) > new Date(filtroDataFim.value + 'T23:59:59')) return false
+    }
+    return true
+  })
+)
 
 // ─── Fetch ─────────────────────────────────────────────────────────────────
 async function carregarFuncionarios() {
@@ -227,7 +381,8 @@ async function carregarEstoque() {
   try {
     const { data } = await supabase
       .from('epis')
-      .select('id, nome, quantidade')
+      .select('id, nome, categoria, ca, validade, quantidade, created_at')
+      .order('nome')
     estoqueProcessado.value = (data || []).map(item => ({
       ...item,
       epi_id:   item.id,
@@ -248,12 +403,13 @@ async function buscarEntregas() {
   try {
     let query = supabase
       .from('movimentacoes')
-      .select('*, epis(nome, ca)')
+      .select('*, epis(nome, ca, validade)')
       .order('data', { ascending: false })
 
-    if (filtros.value.funcionario)    query = query.eq('funcionario', filtros.value.funcionario)
-    if (filtros.value.data_inicio)    query = query.gte('data', filtros.value.data_inicio)
-    if (filtros.value.data_fim)       query = query.lte('data', filtros.value.data_fim)
+    if (filtros.value.funcionario)       query = query.eq('funcionario', filtros.value.funcionario)
+    if (filtros.value.tipo)              query = query.eq('tipo', filtros.value.tipo)
+    if (filtros.value.data_inicio)       query = query.gte('data', filtros.value.data_inicio)
+    if (filtros.value.data_fim)          query = query.lte('data', filtros.value.data_fim)
     if (filtros.value.assinatura !== '') query = query.eq('assinatura_confirmada', filtros.value.assinatura === 'true')
 
     const { data, error } = await query
@@ -269,8 +425,17 @@ async function buscarEntregas() {
 const buscarTudo = () => { carregarEstoque(); buscarEntregas() }
 
 function limparFiltros() {
-  filtros.value = { funcionario: '', data_inicio: '', data_fim: '', assinatura: '' }
+  filtros.value = { funcionario: '', tipo: '', data_inicio: '', data_fim: '', assinatura: '' }
   buscarEntregas()
+}
+
+function limparFiltrosEstoque() {
+  filtroNome.value       = ''
+  filtroCategoria.value  = ''
+  filtroStatus.value     = ''
+  filtroValidade.value   = ''
+  filtroDataInicio.value = ''
+  filtroDataFim.value    = ''
 }
 
 // ─── Gráficos ──────────────────────────────────────────────────────────────
@@ -375,19 +540,21 @@ async function exportarPDF() {
   // Tabela
   autoTable(doc, {
     startY: 48,
-    head: [['Data', 'Funcionário', 'EPI / CA', 'Qtd', 'Assinatura']],
+    head: [['Data', 'Funcionário', 'EPI / CA', 'Validade CA', 'Tipo', 'Qtd', 'Assinatura']],
     body: entregas.value.map(e => [
       formatarData(e.data),
       e.funcionario || 'N/A',
       `${e.epis?.nome || 'N/A'}${e.epis?.ca ? ' (CA: ' + e.epis.ca + ')' : ''}`,
+      e.epis?.validade ? validadeEstoqueLabel(e.epis.validade) : '—',
+      e.tipo === 'entrega' ? 'Entrega' : 'Devolução',
       e.quantidade,
       e.assinatura_confirmada ? 'SIM' : 'NÃO',
     ]),
     theme: 'grid',
-    headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold', fontSize: 10 },
-    bodyStyles: { fontSize: 9, textColor: [30, 30, 30] },
+    headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+    bodyStyles: { fontSize: 8, textColor: [30, 30, 30] },
     alternateRowStyles: { fillColor: [245, 247, 250] },
-    columnStyles: { 3: { halign: 'center' }, 4: { halign: 'center' } },
+    columnStyles: { 3: { halign: 'center' }, 4: { halign: 'center' }, 5: { halign: 'center' }, 6: { halign: 'center' } },
     margin: { left: 14, right: 14 },
   })
 
@@ -398,9 +565,75 @@ async function exportarPDF() {
   doc.save(`relatorio-epi-${periodo}.pdf`)
 }
 
+// ─── PDF Estoque ──────────────────────────────────────────────────────────
+async function exportarPDFEstoque() {
+  let jsPDF, autoTable
+  try {
+    jsPDF     = (await import('jspdf')).default
+    autoTable = (await import('jspdf-autotable')).default
+  } catch {
+    alert('jsPDF não instalado. Execute: npm install jspdf jspdf-autotable')
+    return
+  }
+
+  const doc = new jsPDF()
+
+  doc.setFillColor(15, 23, 42)
+  doc.rect(0, 0, 210, 40, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(18)
+  doc.setFont('helvetica', 'bold')
+  doc.text('Relatório de Estoque de EPIs', 14, 18)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(148, 163, 184)
+  doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 28)
+  doc.text(`Total de itens: ${estoquesFiltrado.value.length}`, 14, 35)
+
+  autoTable(doc, {
+    startY: 48,
+    head: [['EPI', 'Categoria', 'CA', 'Validade CA', 'Qtd', 'Nível', 'Cadastrado em']],
+    body: estoquesFiltrado.value.map(item => [
+      item.nome,
+      item.categoria || '—',
+      item.ca ? `CA ${item.ca}` : '—',
+      item.validade ? validadeEstoqueLabel(item.validade) : '—',
+      item.quantidade,
+      statusEstoque(item.quantidade).label,
+      item.created_at ? formatarData(item.created_at) : '—',
+    ]),
+    theme: 'grid',
+    headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+    bodyStyles: { fontSize: 8, textColor: [30, 30, 30] },
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+    columnStyles: { 4: { halign: 'center' }, 5: { halign: 'center' }, 6: { halign: 'center' } },
+    margin: { left: 14, right: 14 },
+  })
+
+  doc.save(`estoque-epis-${new Date().toISOString().split('T')[0]}.pdf`)
+}
+
 // ─── Helpers ───────────────────────────────────────────────────────────────
 const formatarData = (d) =>
   d ? new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—'
+
+function statusEstoque(qtd) {
+  if (qtd <= 0) return { label: 'Esgotado', cls: 'badge-esgotado' }
+  if (qtd < 10) return { label: 'Baixo',    cls: 'badge-baixo' }
+  return               { label: 'OK',       cls: 'badge-estok-ok' }
+}
+
+function validadeEstoqueClass(date) {
+  if (!date) return ''
+  const diff = (new Date(date + 'T00:00:00') - new Date()) / (1000 * 60 * 60 * 24)
+  if (diff < 0)   return 'val-vencida'
+  if (diff <= 30) return 'val-alerta'
+  return 'val-ok'
+}
+
+function validadeEstoqueLabel(date) {
+  return date ? new Date(date + 'T00:00:00').toLocaleDateString('pt-BR') : '—'
+}
 
 // ─── Lifecycle ─────────────────────────────────────────────────────────────
 onMounted(() => {
@@ -849,4 +1082,136 @@ td strong { color: var(--ink); font-weight: 600; }
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ── Barra de filtros (estoque e movimentações) ──────────────────────────── */
+.filters-bar {
+  display: flex;
+  gap: 10px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  background: rgba(15,23,42,0.3);
+  align-items: center;
+}
+
+.filters-bar .field        { flex: 1; min-width: 150px; }
+.filters-bar .search-field { flex: 2; min-width: 200px; }
+
+.filters-bar input[type="text"],
+.filters-bar input[type="date"] {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--surface-2);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.filters-bar input:focus {
+  border-color: var(--blue-mid);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
+
+.filters-bar select { height: 38px; font-size: 13px; }
+
+.btn-sm { height: 36px; padding: 0 14px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+
+/* ── Resumo de movimentações ─────────────────────────────────────────────── */
+.mov-summary {
+  display: flex;
+  gap: 12px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.mov-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid;
+}
+
+.mov-chip.blue   { background: rgba(59,130,246,0.08);  border-color: rgba(59,130,246,0.2);  color: #60a5fa; }
+.mov-chip.purple { background: rgba(168,85,247,0.08);  border-color: rgba(168,85,247,0.2);  color: #c084fc; }
+.mov-chip.red    { background: rgba(239,68,68,0.08);   border-color: rgba(239,68,68,0.2);   color: #f87171; }
+
+.mov-chip-value { font-size: 22px; font-weight: 800; }
+.mov-chip-label { font-size: 11px; opacity: 0.8; }
+
+/* ── Badge tipo movimentação ─────────────────────────────────────────────── */
+.badge-tipo {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tipo-entrega   { background: rgba(59,130,246,0.12); color: #60a5fa; border: 1px solid rgba(59,130,246,0.25); }
+.tipo-devolucao { background: rgba(168,85,247,0.12); color: #c084fc; border: 1px solid rgba(168,85,247,0.25); }
+
+.td-obs { color: var(--ink-soft); max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Destaque de linhas críticas ─────────────────────────────────────────── */
+.row-critico { background: rgba(239,68,68,0.04) !important; }
+.row-baixo   { background: rgba(245,158,11,0.04) !important; }
+
+/* ── Tabela de Estoque ───────────────────────────────────────────────────── */
+.table-loading-row {
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.categoria-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-mid);
+  background: rgba(30,41,59,0.8);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.td-qty-estoque { font-weight: 700; color: var(--ink); font-size: 14px; }
+
+.text-soft { color: var(--ink-soft); font-size: 12px; }
+
+.badge-validade {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-family: 'Courier New', monospace;
+}
+
+.val-ok      { background: rgba(34,197,94,0.12);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+.val-alerta  { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+.val-vencida { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+
+.badge-esgotado { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+.badge-baixo    { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+.badge-estok-ok { background: rgba(34,197,94,0.15);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
 </style>
