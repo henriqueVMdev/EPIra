@@ -14,7 +14,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    // Desliga o navigator lock do supabase-js v2. Em alguns navegadores/abas
+    // ele trava (deadlock) dentro de getSession(): o guard de rota fica
+    // esperando pra sempre, o RouterView nunca recebe componente e a tela
+    // fica "em branco"/escura sem conteúdo e sem erro no console.
+    // Este passthrough apenas executa a função, sem tentar adquirir o lock.
+    lock: async (_name, _acquireTimeout, fn) => fn(),
+  },
+});
 
 const session = ref(null);
 const loadingSession = ref(true);
@@ -62,6 +73,16 @@ async function initSession() {
 }
 initSession();
 
+// Rede de segurança: se a inicialização travar (deadlock de lock, rede presa),
+// libera os guards mesmo assim depois de 4s para não deixar a tela em branco.
+setTimeout(() => {
+  if (loadingSession.value) {
+    console.warn("[EPIra] initSession demorou demais; liberando navegação.");
+    loadingSession.value = false;
+    resolveReady();
+  }
+}, 4000);
+
 supabase.auth.onAuthStateChange(async (_event, newSession) => {
   session.value = newSession;
   try {
@@ -78,6 +99,13 @@ async function currentProfile() {
   return profile.value;
 }
 
+// Estado de autenticação já resolvido (sem chamar getSession de novo, que pode
+// travar). Os guards usam isto para decidir a navegação.
+async function isAuthenticated() {
+  await ready;
+  return !!session.value;
+}
+
 // Rota inicial conforme o papel do usuário.
 function homeRoute(role = profile.value?.role) {
   return role === "adm" ? "/applayout/aprovacoes" : "/applayout/solicitar";
@@ -92,6 +120,7 @@ export function useSupabase() {
     isAdm,
     loadProfile,
     currentProfile,
+    isAuthenticated,
     homeRoute,
   };
 }

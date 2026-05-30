@@ -41,12 +41,13 @@ const router = createRouter({
 
 // Guarda de navegação: autenticação + autorização por papel (role).
 router.beforeEach(async (to) => {
-  const { supabase, currentProfile, homeRoute } = useSupabase()
+  const { isAuthenticated, currentProfile, homeRoute } = useSupabase()
 
   let autenticado = false
   try {
-    const { data } = await supabase.auth.getSession()
-    autenticado = !!data.session
+    // Usa o estado já resolvido na inicialização (não chama getSession de novo,
+    // que pode travar no navigator lock e deixar a tela em branco).
+    autenticado = await isAuthenticated()
   } catch (e) {
     console.error('[EPIra] Erro ao verificar sessão no guard:', e)
     // Em caso de falha, deixa seguir para não travar a navegação.
