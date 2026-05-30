@@ -2,8 +2,8 @@
   <div class="epi-page">
     <!-- Header -->
     <div class="page-header">
-      <h1>Registro de Entrega de <span>EPI</span></h1>
-      <p class="subtitle">Preencha os dados abaixo para registrar a entrega do equipamento de proteção individual.</p>
+      <h1>Registro de {{ isDevolucao ? 'Devolução' : 'Entrega' }} de <span>EPI</span></h1>
+      <p class="subtitle">Preencha os dados abaixo para registrar a {{ isDevolucao ? 'devolução' : 'entrega' }} do equipamento de proteção individual.</p>
     </div>
 
     <!-- Card -->
@@ -11,7 +11,7 @@
       <div class="card-header">
         <div class="card-header-icon">🦺</div>
         <div class="card-header-text">
-          <h2>Ficha de Entrega de EPI</h2>
+          <h2>{{ isDevolucao ? 'Ficha de Devolução de EPI' : 'Ficha de Entrega de EPI' }}</h2>
           <p>Todos os campos marcados com * são obrigatórios</p>
         </div>
         <div class="doc-number">Nº {{ docNumber }}</div>
@@ -63,6 +63,19 @@
                 <span class="field-error">{{ errors.tipo }}</span>
               </div>
 
+              <div v-if="isDevolucao" class="field" :class="{ invalid: errors.condicao }">
+                <label for="condicao">Condição do EPI <span class="required">*</span></label>
+                <div class="select-wrap">
+                  <select id="condicao" v-model="form.condicao" @change="errors.condicao = ''">
+                    <option value="">Selecionar condição...</option>
+                    <option value="bom">Bom estado</option>
+                    <option value="danificado">Danificado</option>
+                    <option value="descarte">Para descarte</option>
+                  </select>
+                </div>
+                <span class="field-error">{{ errors.condicao }}</span>
+              </div>
+
               <div class="field" :class="{ invalid: errors.epi_id }">
                 <label for="epi">Tipo de EPI <span class="required">*</span></label>
                 <div class="select-wrap">
@@ -102,7 +115,7 @@
                     />
                     <button type="button" class="qty-btn" @click="incQty">+</button>
                   </div>
-                  <span class="field-hint">Unidades entregues</span>
+                  <span class="field-hint">{{ isDevolucao ? 'Unidades devolvidas' : 'Unidades entregues' }}</span>
                   <span class="field-error">{{ errors.quantidade }}</span>
                 </div>
 
@@ -152,8 +165,9 @@
                   {{ form.assinatura_confirmada ? '✓ Assinatura Digital Confirmada' : 'Assinatura Digital Confirmada' }}
                 </div>
                 <div class="sig-desc">
-                  Confirmo que recebi o(s) EPI(s) listado(s) acima em perfeito estado de conservação,
-                  fui orientado quanto ao seu uso correto e me comprometo a utilizá-lo(s) sempre que necessário.
+                  {{ isDevolucao
+                    ? 'Confirmo que devolvi o(s) EPI(s) listado(s) acima e declaro que as condições informadas são verdadeiras.'
+                    : 'Confirmo que recebi o(s) EPI(s) listado(s) acima em perfeito estado de conservação, fui orientado quanto ao seu uso correto e me comprometo a utilizá-lo(s) sempre que necessário.' }}
                 </div>
               </div>
               <div class="sig-icon">✍️</div>
@@ -180,7 +194,7 @@
           >
             <span v-if="submitting" class="spinner"></span>
             <span v-else>✓</span>
-            {{ submitting ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Registrar Entrega' }}
+            {{ submitting ? 'Salvando...' : editingId ? 'Salvar Alterações' : isDevolucao ? 'Registrar Devolução' : 'Registrar Entrega' }}
           </button>
         </div>
       </div>
@@ -299,6 +313,19 @@
               </div>
             </div>
 
+            <div v-if="form.tipo === 'devolucao'" class="field" style="margin-top:14px" :class="{ invalid: errors.condicao }">
+              <label>Condição do EPI</label>
+              <div class="select-wrap">
+                <select v-model="form.condicao" @change="errors.condicao = ''">
+                  <option value="">Selecionar condição...</option>
+                  <option value="bom">Bom estado</option>
+                  <option value="danificado">Danificado</option>
+                  <option value="descarte">Para descarte</option>
+                </select>
+              </div>
+              <span class="field-error">{{ errors.condicao }}</span>
+            </div>
+
             <div class="field" style="margin-top:14px" :class="{ invalid: errors.epi_id }">
               <label>Tipo de EPI <span class="required">*</span></label>
               <div class="select-wrap">
@@ -368,8 +395,8 @@
       <div v-if="showSuccess" class="success-overlay" @click="closeSuccess">
         <div class="success-card" @click.stop>
           <div class="success-icon">✅</div>
-          <h3>Entrega Registrada!</h3>
-          <p>O registro de entrega do EPI foi salvo com sucesso e vinculado ao prontuário do funcionário.</p>
+          <h3>{{ lastTipo === 'devolucao' ? 'Devolução Registrada!' : 'Entrega Registrada!' }}</h3>
+          <p>{{ lastTipo === 'devolucao' ? 'O registro de devolução do EPI foi salvo com sucesso e o estoque foi atualizado.' : 'O registro de entrega do EPI foi salvo com sucesso e vinculado ao prontuário do funcionário.' }}</p>
           <div class="success-protocol">Protocolo: #EPI-{{ lastProtocol }}</div>
           <button class="btn btn-primary" style="width:100%;justify-content:center" @click="closeSuccess">
             Novo Registro
@@ -381,7 +408,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useSupabase } from '@/composables/useSupabase'
 
 const { supabase } = useSupabase()
@@ -396,6 +423,7 @@ const showEditModal         = ref(false)
 const apiError              = ref('')
 const docCounter            = ref(1)
 const lastProtocol          = ref('')
+const lastTipo              = ref('entrega')
 const movimentacoes         = ref([])
 const loadingMovimentacoes  = ref(false)
 const editingId             = ref(null)
@@ -412,6 +440,7 @@ const initialForm = () => ({
   data:                  today,
   observacoes:           '',
   assinatura_confirmada: false,
+  condicao:              '',
 })
 
 const form   = reactive(initialForm())
@@ -422,10 +451,12 @@ const errors = reactive({
   quantidade:            '',
   data:                  '',
   assinatura_confirmada: '',
+  condicao:              '',
 })
 
 // ─── Computed ──────────────────────────────────────────────────────────────
-import { computed } from 'vue'
+const isEntrega   = computed(() => form.tipo !== 'devolucao')
+const isDevolucao = computed(() => form.tipo === 'devolucao')
 
 // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -524,6 +555,10 @@ function validate() {
     errors.assinatura_confirmada = 'É necessário confirmar a assinatura digital.'
     ok = false
   }
+  if (form.tipo === 'devolucao' && !form.condicao) {
+    errors.condicao = 'Informe a condição do EPI devolvido.'
+    ok = false
+  }
 
   return ok
 }
@@ -536,13 +571,20 @@ async function submitForm() {
 
   submitting.value = true
   try {
+    const condLabels = { bom: 'Bom estado', danificado: 'Danificado', descarte: 'Para descarte' }
+    let obsTexto = form.observacoes || null
+    if (form.tipo === 'devolucao' && form.condicao) {
+      const label = condLabels[form.condicao]
+      obsTexto = `${label}${form.observacoes ? ' — ' + form.observacoes : ''}`
+    }
+
     const payload = {
       funcionario:           form.funcionario.trim(),
       tipo:                  form.tipo,
       epi_id:                form.epi_id,
       quantidade:            form.quantidade,
       data:                  form.data,
-      observacoes:           form.observacoes || null,
+      observacoes:           obsTexto,
       assinatura_confirmada: form.assinatura_confirmada,
     }
 
@@ -555,6 +597,14 @@ async function submitForm() {
 
     if (error) throw error
 
+    if (!editingId.value) {
+      const { data: epiAtual } = await supabase.from('epis').select('quantidade').eq('id', form.epi_id).single()
+      const delta   = form.tipo === 'entrega' ? -form.quantidade : form.quantidade
+      const novaQtd = Math.max(0, (epiAtual?.quantidade ?? 0) + delta)
+      await supabase.from('epis').update({ quantidade: novaQtd }).eq('id', form.epi_id)
+    }
+
+    lastTipo.value     = form.tipo
     lastProtocol.value = String(docCounter.value).padStart(6, '0')
     showSuccess.value  = true
   } catch (e) {
