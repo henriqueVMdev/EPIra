@@ -228,7 +228,10 @@
                 </span>
               </td>
               <td class="td-obs">{{ epi.obs || '—' }}</td>
-              <td><button class="btn-edit" @click="editRecord(epi)"><i class="fas fa-pencil-alt"></i> Editar</button></td>
+              <td class="td-actions">
+                <button class="btn-edit" @click="editRecord(epi)"><i class="fas fa-pencil-alt"></i> Editar</button>
+                <button class="btn-delete" @click="confirmDelete(epi)"><i class="fas fa-trash-alt"></i> Excluir</button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -345,6 +348,26 @@
         </div>
       </div>
     </Transition>
+
+    <!-- Modal de confirmação de exclusão -->
+    <Transition name="fade">
+      <div v-if="showDeleteModal" class="success-overlay" @click="cancelDelete">
+        <div class="delete-modal" @click.stop>
+          <div class="delete-modal-icon"><i class="fas fa-trash-alt"></i></div>
+          <h3>Excluir EPI</h3>
+          <p>Tem certeza que deseja excluir <strong>{{ deletingItem?.nome }}</strong>? Esta ação não pode ser desfeita.</p>
+          <div class="delete-modal-actions">
+            <button class="btn btn-ghost" @click="cancelDelete">Cancelar</button>
+            <button class="btn btn-danger" @click="executeDelete" :disabled="deleting">
+              <span v-if="deleting" class="spinner"></span>
+              <i v-else class="fas fa-trash-alt"></i>
+              {{ deleting ? 'Excluindo...' : 'Excluir' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
   </div>
 </template>
 
@@ -354,9 +377,12 @@ import { useSupabase } from '@/composables/useSupabase'
 
 const { supabase } = useSupabase()
 
-const submitting    = ref(false)
-const showSuccess   = ref(false)
-const showEditModal = ref(false)
+const submitting      = ref(false)
+const showSuccess     = ref(false)
+const showEditModal   = ref(false)
+const showDeleteModal = ref(false)
+const deletingItem    = ref(null)
+const deleting        = ref(false)
 const apiError      = ref('')
 const epis          = ref([])
 const loadingEpis   = ref(false)
@@ -489,6 +515,32 @@ function closeSuccess() {
   editingId.value     = null
   limpar()
   fetchEpis()
+}
+
+function confirmDelete(epi) {
+  deletingItem.value    = epi
+  showDeleteModal.value = true
+}
+
+async function executeDelete() {
+  if (!deletingItem.value) return
+  deleting.value = true
+  try {
+    const { error } = await supabase.from('epis').delete().eq('id', deletingItem.value.id)
+    if (error) throw error
+    showDeleteModal.value = false
+    deletingItem.value    = null
+    await fetchEpis()
+  } catch (e) {
+    apiError.value = 'Erro ao excluir: ' + e.message
+  } finally {
+    deleting.value = false
+  }
+}
+
+function cancelDelete() {
+  showDeleteModal.value = false
+  deletingItem.value    = null
 }
 </script>
 
@@ -1345,4 +1397,94 @@ tbody tr.row-zero:hover { background: rgba(239,68,68,0.12); }
   color: var(--blue-mid);
   background: rgba(59,130,246,0.08);
 }
+
+.td-actions { display: flex; gap: 6px; align-items: center; }
+
+.btn-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-delete:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: rgba(239,68,68,0.08);
+}
+
+.delete-modal {
+  background: #161B27;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 40px;
+  text-align: center;
+  max-width: 380px;
+  width: 90%;
+  animation: popIn 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+
+.delete-modal-icon {
+  width: 56px;
+  height: 56px;
+  background: rgba(239,68,68,0.15);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  color: var(--red);
+  margin: 0 auto 18px;
+}
+
+.delete-modal h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 10px;
+}
+
+.delete-modal p {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.delete-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn-danger {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  background: var(--red);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: inherit;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(239,68,68,0.35);
+}
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+.btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>
