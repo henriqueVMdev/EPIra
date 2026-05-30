@@ -245,7 +245,6 @@ async function fetchEpis() {
     .from('epis')
     .select('id, nome, categoria, ca, validade, quantidade, obs')
     .order('nome', { ascending: true })
-  console.log('fetchEpis →', { data, error })
   if (error) {
     apiError.value = 'Erro ao carregar EPIs: ' + error.message
   } else {

@@ -62,8 +62,8 @@
           {{ mensagem }}
         </p>
 
-        <button class="btn-primary" type="button" @click="entrar">
-          Entrar
+        <button class="btn-primary" type="button" @click="entrar" :disabled="carregando">
+          {{ carregando ? 'Entrando...' : 'Entrar' }}
         </button>
 
         <div class="divisor">
@@ -96,9 +96,10 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useSupabase } from '../composables/useSupabase'
 
+const { supabase, loadProfile, homeRoute } = useSupabase()
 const router = useRouter()
-const emit = defineEmits(['login'])
 
 function criarConta() {
   router.push('/cadastro_user')
@@ -112,17 +113,40 @@ const form = reactive({
 
 const mensagem = ref('')
 const temErro = ref(false)
+const carregando = ref(false)
 
-function entrar() {
+async function entrar() {
   if (!form.email || !form.senha) {
     temErro.value = true
     mensagem.value = 'Informe e-mail e senha para continuar.'
     return
   }
 
+  carregando.value = true
   temErro.value = false
-  mensagem.value = 'Login realizado.'
-  emit('login', { email: form.email, lembrar: form.lembrar })
+  mensagem.value = 'Autenticando...'
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email: form.email,
+    password: form.senha,
+  })
+
+  if (error) {
+    temErro.value = true
+    mensagem.value =
+      error.message === 'Invalid login credentials'
+        ? 'E-mail ou senha incorretos.'
+        : error.message || 'Erro ao entrar.'
+    carregando.value = false
+    return
+  }
+
+  temErro.value = false
+  mensagem.value = 'Login realizado. Redirecionando...'
+  carregando.value = false
+
+  const perfil = await loadProfile()
+  router.push(homeRoute(perfil?.role))
 }
 </script>
 

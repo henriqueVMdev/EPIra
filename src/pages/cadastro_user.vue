@@ -165,49 +165,55 @@ async function criar() {
     return
   }
 
-  const cpfNumerico = parseInt(form.cpf.replace(/\D/g, ''), 10)
-  if (form.cpf && Number.isNaN(cpfNumerico)) {
-    temErro.value = true
-    mensagem.value = 'CPF inválido.'
-    return
-  }
-
   carregando.value = true
   temErro.value = false
   mensagem.value = 'Criando conta...'
 
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  // Cria o usuário no Auth (e-mail + senha) e guarda os dados extras
+  // no metadata do próprio usuário — sem depender de tabela externa.
+  const { data, error } = await supabase.auth.signUp({
     email: form.email,
     password: form.senha,
+    options: {
+      data: {
+        nome: form.nome,
+        cpf: form.cpf.replace(/\D/g, '') || null,
+        cargo: form.cargo || null,
+      },
+    },
   })
 
-  if (authError) {
+  if (error) {
     temErro.value = true
-    mensagem.value = authError.message || 'Erro ao criar usuário.'
+    mensagem.value =
+      error.message === 'User already registered'
+        ? 'Este e-mail já está cadastrado.'
+        : error.message || 'Erro ao criar usuário.'
     carregando.value = false
     return
   }
 
-  const { error: perfilError } = await supabase.from('profiles').insert({
-    email: form.email,
-    nome: form.nome,
-    cpf: cpfNumerico || null,
-    cargo: form.cargo || null,
-  })
-
-  if (perfilError) {
+  // Quando a confirmação de e-mail está ativa, o Supabase devolve o
+  // usuário sem identidades para e-mails já existentes.
+  if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
     temErro.value = true
-    mensagem.value = perfilError.message || 'Erro ao salvar perfil.'
+    mensagem.value = 'Este e-mail já está cadastrado.'
     carregando.value = false
     return
   }
 
-  mensagem.value = 'Conta criada com sucesso! Redirecionando...'
   carregando.value = false
 
-  setTimeout(() => {
-    router.push('/login')
-  }, 1200)
+  if (data.session) {
+    // Confirmação de e-mail desativada: já está logado, pode usar direto.
+    mensagem.value = 'Conta criada com sucesso! Redirecionando...'
+    setTimeout(() => router.push('/applayout/solicitar'), 1200)
+  } else {
+    // Confirmação de e-mail ativa: precisa confirmar antes de logar.
+    mensagem.value =
+      'Conta criada! Verifique seu e-mail para confirmar antes de fazer login.'
+    setTimeout(() => router.push('/login'), 2000)
+  }
 }
 </script>
 

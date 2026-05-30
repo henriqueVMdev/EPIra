@@ -23,29 +23,59 @@
       <div class="divider"></div>
 
       <nav class="menu">
-        <RouterLink to="/applayout/funcionarios" class="menu-item" active-class="active">
-          <span class="icon-box"><i class="fas fa-users"></i></span>
-          <span>Funcionários</span>
-        </RouterLink>
+        <!-- ADM -->
+        <template v-if="isAdm">
+          <RouterLink to="/applayout/aprovacoes" class="menu-item" active-class="active">
+            <span class="icon-box"><i class="fas fa-clipboard-check"></i></span>
+            <span>Aprovações</span>
+          </RouterLink>
 
-        <RouterLink to="/applayout/cadastro_epi" class="menu-item" active-class="active">
-          <span class="icon-box"><i class="fas fa-box"></i></span>
-          <span>Gestão de EPIs</span>
-        </RouterLink>
+          <RouterLink to="/applayout/funcionarios" class="menu-item" active-class="active">
+            <span class="icon-box"><i class="fas fa-users"></i></span>
+            <span>Funcionários</span>
+          </RouterLink>
 
-        <RouterLink to="/applayout/entregas" class="menu-item" active-class="active">
-          <span class="icon-box"><i class="fas fa-hand-holding"></i></span>
-          <span>Entregas / Devoluções</span>
-        </RouterLink>
+          <RouterLink to="/applayout/cadastro_epi" class="menu-item" active-class="active">
+            <span class="icon-box"><i class="fas fa-box"></i></span>
+            <span>Gestão de EPIs</span>
+          </RouterLink>
 
-        <RouterLink to="/applayout/relatorios" class="menu-item" active-class="active">
-          <span class="icon-box"><i class="fas fa-chart-bar"></i></span>
-          <span>Relatórios</span>
-        </RouterLink>
+          <RouterLink to="/applayout/entregas" class="menu-item" active-class="active">
+            <span class="icon-box"><i class="fas fa-hand-holding"></i></span>
+            <span>Entregas / Devoluções</span>
+          </RouterLink>
+
+          <RouterLink to="/applayout/relatorios" class="menu-item" active-class="active">
+            <span class="icon-box"><i class="fas fa-chart-bar"></i></span>
+            <span>Relatórios</span>
+          </RouterLink>
+        </template>
+
+        <!-- FUNCIONÁRIO -->
+        <template v-else>
+          <RouterLink to="/applayout/solicitar" class="menu-item" active-class="active">
+            <span class="icon-box"><i class="fas fa-hand-holding-medical"></i></span>
+            <span>Solicitar EPI</span>
+          </RouterLink>
+
+          <RouterLink to="/applayout/minhas-solicitacoes" class="menu-item" active-class="active">
+            <span class="icon-box"><i class="fas fa-list-check"></i></span>
+            <span>Minhas Solicitações</span>
+          </RouterLink>
+        </template>
       </nav>
 
       <div class="sidebar-footer">
         <div class="divider"></div>
+        <div class="user-box">
+          <span class="user-avatar"><i class="fas fa-user"></i></span>
+          <div class="user-info">
+            <span class="user-name">{{ profile?.nome || profile?.email || 'Usuário' }}</span>
+            <span class="user-role" :class="isAdm ? 'role-adm' : 'role-func'">
+              {{ isAdm ? 'Administrador' : 'Funcionário' }}
+            </span>
+          </div>
+        </div>
         <button @click="sair" class="botao-sair">
           <span class="icon-box sair-box"><i class="fas fa-sign-out-alt"></i></span>
           <span>Sair</span>
@@ -64,7 +94,7 @@ import { useSupabase } from "../composables/useSupabase";
 import { useRouter } from "vue-router";
 import { RouterLink, RouterView } from "vue-router";
 
-const { supabase } = useSupabase();
+const { supabase, profile, isAdm } = useSupabase();
 const router = useRouter();
 
 async function sair() {
@@ -242,6 +272,54 @@ async function sair() {
 .sidebar-footer .divider {
   margin-bottom: 12px;
 }
+
+/* ── Usuário ── */
+.user-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 12px;
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 132, 255, 0.15);
+  color: #a5b4fc;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 170px;
+}
+
+.user-role {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.role-adm  { color: #4ade80; }
+.role-func { color: #7c9bdc; }
 
 .botao-sair {
   display: flex;
