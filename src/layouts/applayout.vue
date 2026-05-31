@@ -62,6 +62,12 @@
             <span class="icon-box"><i class="fas fa-list-check"></i></span>
             <span>Minhas Solicitações</span>
           </RouterLink>
+
+          <RouterLink to="/applayout/meus-epis" class="menu-item" active-class="active">
+            <span class="icon-box"><i class="fas fa-helmet-safety"></i></span>
+            <span>Meus EPIs</span>
+            <span v-if="alertCount" class="menu-badge">{{ alertCount }}</span>
+          </RouterLink>
         </template>
       </nav>
 
@@ -84,18 +90,66 @@
     </aside>
 
     <main class="conteudo">
+      <!-- Notificação global de validade (apenas funcionário) -->
+      <RouterLink
+        v-if="!isAdm && alertCount && $route.path !== '/applayout/meus-epis'"
+        to="/applayout/meus-epis"
+        class="global-alert"
+        :class="temVencido ? 'ga-danger' : 'ga-warn'"
+      >
+        <i :class="temVencido ? 'fas fa-circle-exclamation' : 'fas fa-triangle-exclamation'"></i>
+        <span>
+          {{ temVencido
+            ? `Você tem ${alertCount} EPI(s) com validade vencida ou próxima do vencimento.`
+            : `Você tem ${alertCount} EPI(s) próximos do vencimento.` }}
+        </span>
+        <span class="ga-link">Ver Meus EPIs →</span>
+      </RouterLink>
+
       <RouterView />
     </main>
   </div>
 </template>
 
 <script setup>
+import { ref, computed, watch } from "vue";
 import { useSupabase } from "../composables/useSupabase";
 import { useRouter } from "vue-router";
 import { RouterLink, RouterView } from "vue-router";
+import { fetchEpisEmPosse, isAlerta, isVencido } from "../composables/useEpiPossession";
 
-const { supabase, profile, isAdm } = useSupabase();
+const { supabase, profile, isAdm, currentProfile } = useSupabase();
 const router = useRouter();
+
+// Alertas de validade dos EPIs em posse do funcionário (para o badge + banner).
+const episEmPosse = ref([]);
+const alertas = computed(() => episEmPosse.value.filter(isAlerta));
+const alertCount = computed(() => alertas.value.length);
+const temVencido = computed(() => episEmPosse.value.some(isVencido));
+
+// Evita recarregar para um perfil já carregado (currentProfile() muda
+// profile.id e re-dispara o watch, o que duplicaria o fetch).
+let perfilCarregado;
+
+async function carregarAlertas() {
+  try {
+    await currentProfile();
+    const perfilId = profile.value?.id ?? null;
+    if (perfilId === perfilCarregado) return;
+    perfilCarregado = perfilId;
+    if (isAdm.value || !profile.value?.nome) {
+      episEmPosse.value = [];
+      return;
+    }
+    episEmPosse.value = await fetchEpisEmPosse(profile.value.nome);
+  } catch (e) {
+    console.warn("Falha ao carregar alertas de validade:", e?.message || e);
+    episEmPosse.value = [];
+  }
+}
+
+// Carrega na montagem e quando o perfil mudar (login/troca de usuário).
+watch(() => profile.value?.id, carregarAlertas, { immediate: true });
 
 async function sair() {
   try {
@@ -230,6 +284,23 @@ async function sair() {
   padding-left: 9px;
 }
 
+.menu-badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+}
+
 .icon-box {
   width: 32px;
   height: 32px;
@@ -356,6 +427,28 @@ async function sair() {
   overflow-y: auto;
   background-color: #0a0f1e;
 }
+
+/* ── Banner global de alerta de validade ── */
+.global-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 24px;
+  padding: 13px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: filter 0.2s;
+}
+.global-alert:hover { filter: brightness(1.12); }
+.global-alert i { font-size: 18px; flex-shrink: 0; }
+.global-alert span:first-of-type { flex: 1; }
+.ga-danger { background: rgba(239, 68, 68, 0.12); border: 1.5px solid rgba(239, 68, 68, 0.4); color: #fca5a5; }
+.ga-danger i { color: #f87171; }
+.ga-warn { background: rgba(245, 158, 11, 0.12); border: 1.5px solid rgba(245, 158, 11, 0.4); color: #fcd34d; }
+.ga-warn i { color: #fcd34d; }
+.ga-link { font-weight: 700; white-space: nowrap; opacity: 0.9; }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {

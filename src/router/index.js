@@ -10,6 +10,7 @@ import relatorios from '../pages/relatorios.vue'
 import applayout from '../layouts/applayout.vue'
 import solicitar_epi from '../pages/solicitar_epi.vue'
 import minhas_solicitacoes from '../pages/minhas_solicitacoes.vue'
+import meus_epis from '../pages/meus_epis.vue'
 import aprovacoes from '../pages/aprovacoes.vue'
 
 const routes = [
@@ -29,7 +30,8 @@ const routes = [
       { path: 'relatorios', component: relatorios, meta: { role: 'adm' } },
       // Área do FUNCIONÁRIO (qualquer usuário logado)
       { path: 'solicitar', component: solicitar_epi },
-      { path: 'minhas-solicitacoes', component: minhas_solicitacoes }
+      { path: 'minhas-solicitacoes', component: minhas_solicitacoes },
+      { path: 'meus-epis', component: meus_epis }
     ]
   }
 ]

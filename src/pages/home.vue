@@ -31,11 +31,8 @@
         garanta a conformidade da sua equipe com um clique. A solução
         definitiva para a NR-6.
       </p>
-      <button class="botao-video">
-        <span class="icone-play">▶</span> Ver Vídeo
-      </button>
       <div class="imagem-heroi">
-        <img src="@/assets/imagem1.png" alt="EPIra Dashboard" class="img-heroi" />
+        <img src="@/assets/homeimg.jpeg" alt="EPIra Dashboard" class="img-heroi" />
       </div>
     </section>
 
@@ -92,8 +89,8 @@
 
     <!-- RECURSO 1 - RASTREAMENTO -->
     <section class="secao-recurso recurso-direita">
-      <div class="visual-recurso">
-        <img src="@/assets/rastreamento1.png" alt="Rastreamento Automático" class="img-recurso" />
+      <div class="visual-recurso visual-rastreio">
+        <img src="@/assets/rastreio.png" alt="Rastreamento Automático" class="img-recurso" />
       </div>
       <div class="texto-recurso">
         <div class="icone-recurso">
@@ -131,15 +128,15 @@
           <li><img src="/home_assets/check_asset.png" alt="✓" class="marcador-verde" /> Validade jurídica garantida</li>
         </ul>
       </div>
-      <div class="visual-recurso">
-        <img src="@/assets/cadastro1.png" alt="Cadastro Automático" class="img-recurso" />
+      <div class="visual-recurso visual-limpo">
+        <img src="@/assets/cadastro.svg" alt="Cadastro Automático" class="img-recurso" />
       </div>
     </section>
 
     <!-- RECURSO 3 - ALERTAS -->
     <section class="secao-recurso recurso-direita">
-      <div class="visual-recurso">
-        <img src="@/assets/alerta1.png" alt="Alertas de Validade" class="img-recurso" />
+      <div class="visual-recurso visual-limpo">
+        <img src="@/assets/alertas.png" alt="Alertas de Validade" class="img-recurso img-alertas" />
       </div>
       <div class="texto-recurso">
         <div class="icone-recurso">
@@ -349,30 +346,6 @@ export default {
   line-height: 1.6;
 }
 
-.botao-video {
-  background: transparent;
-  border: 1px solid #2563EB;
-  color: #FFFFFF;
-  padding: 10px 22px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: background 0.2s;
-}
-
-.botao-video:hover {
-  background: rgba(37, 99, 235, 0.15);
-}
-
-.icone-play {
-  color: #60A5FA;
-  font-size: 12px;
-}
-
 .imagem-heroi {
   max-width: 880px;
   margin: 50px auto 0;
@@ -534,6 +507,29 @@ export default {
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* Imagem sem moldura (SVG com fundo transparente), exibida maior */
+.visual-limpo {
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
+  background: transparent;
+}
+.visual-limpo .img-recurso {
+  transform: scale(1.22);
+  transform-origin: center;
+}
+/* alertas.png tem mais margem transparente; escala maior p/ casar com a de cadastro */
+.visual-limpo .img-alertas {
+  transform: scale(1.46);
+}
+/* rastreio.png ocupa 100% do canvas (sem margem); leve aumento p/ casar a
+   largura visível com a de cadastro/alertas. Escala no wrapper p/ não cortar a moldura. */
+.visual-rastreio {
+  transform: scale(1.07);
+  transform-origin: center;
 }
 
 .icone-recurso {
