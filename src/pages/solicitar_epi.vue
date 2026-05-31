@@ -55,6 +55,31 @@
               <span class="field-error">{{ errors.justificativa }}</span>
             </div>
           </div>
+
+          <div class="section">
+            <div class="section-label">Assinatura Digital</div>
+            <button
+              type="button"
+              class="signature-box"
+              :class="{ signed: form.assinatura, 'sig-invalid': errors.assinatura }"
+              @click="toggleAssinatura"
+            >
+              <span class="sig-icon">
+                <i class="fas" :class="form.assinatura ? 'fa-circle-check' : 'fa-pen-nib'"></i>
+              </span>
+              <span class="sig-info">
+                <strong>{{ form.assinatura ? 'Assinado digitalmente' : 'Assinar digitalmente' }}</strong>
+                <small v-if="form.assinatura">{{ profile?.nome || 'Funcionário' }} · {{ assinaturaData }}</small>
+                <small v-else>Toque aqui para confirmar sua assinatura ao fazer o pedido</small>
+              </span>
+            </button>
+            <p class="sig-terms">
+              Ao assinar, declaro estar ciente e de acordo com a retirada do(s) EPI(s) solicitado(s),
+              comprometendo-me a utilizá-lo(s) corretamente, a zelar pela sua conservação e a devolvê-lo(s)
+              quando solicitado, nos termos da NR-6.
+            </p>
+            <span v-if="errors.assinatura" class="sig-error">{{ errors.assinatura }}</span>
+          </div>
         </form>
       </div>
 
@@ -62,7 +87,13 @@
         <span class="footer-info">Seu pedido ficará como "pendente" até a aprovação.</span>
         <div class="btn-group">
           <button class="btn btn-ghost" type="button" @click="limpar">↺ Limpar</button>
-          <button class="btn btn-primary" type="button" :disabled="enviando" @click="enviar">
+          <button
+            class="btn btn-primary"
+            type="button"
+            :disabled="enviando || !form.assinatura"
+            :title="!form.assinatura ? 'Assine digitalmente para enviar o pedido' : ''"
+            @click="enviar"
+          >
             <span v-if="enviando" class="spinner"></span>
             <i v-else class="fas fa-paper-plane"></i>
             {{ enviando ? 'Enviando...' : 'Enviar Solicitação' }}
@@ -94,18 +125,27 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSupabase } from '@/composables/useSupabase'
 
-const { supabase, session } = useSupabase()
+const { supabase, session, profile, currentProfile } = useSupabase()
 const router = useRouter()
 
-const epis        = ref([])
-const loadingEpis = ref(false)
-const enviando    = ref(false)
-const showSuccess = ref(false)
-const apiError    = ref('')
+const epis          = ref([])
+const loadingEpis   = ref(false)
+const enviando      = ref(false)
+const showSuccess   = ref(false)
+const apiError      = ref('')
+const assinaturaData = ref('')
 
-const initialForm = () => ({ epi_id: '', quantidade: 1, justificativa: '' })
+const initialForm = () => ({ epi_id: '', quantidade: 1, justificativa: '', assinatura: false })
 const form   = reactive(initialForm())
-const errors = reactive({ epi_id: '', quantidade: '', justificativa: '' })
+const errors = reactive({ epi_id: '', quantidade: '', justificativa: '', assinatura: '' })
+
+function toggleAssinatura() {
+  form.assinatura = !form.assinatura
+  errors.assinatura = ''
+  assinaturaData.value = form.assinatura
+    ? new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+    : ''
+}
 
 async function fetchEpis() {
   loadingEpis.value = true
@@ -118,13 +158,17 @@ async function fetchEpis() {
   loadingEpis.value = false
 }
 
-onMounted(fetchEpis)
+onMounted(() => {
+  fetchEpis()
+  currentProfile()
+})
 
 function validate() {
   let ok = true
   if (!form.epi_id) { errors.epi_id = 'Selecione um EPI.'; ok = false }
   if (!form.quantidade || form.quantidade < 1) { errors.quantidade = 'Informe uma quantidade válida.'; ok = false }
   if (!form.justificativa.trim()) { errors.justificativa = 'Descreva o motivo da solicitação.'; ok = false }
+  if (!form.assinatura) { errors.assinatura = 'Confirme a assinatura digital para enviar o pedido.'; ok = false }
   return ok
 }
 
@@ -152,6 +196,7 @@ async function enviar() {
 function limpar() {
   Object.assign(form, initialForm())
   Object.keys(errors).forEach(k => (errors[k] = ''))
+  assinaturaData.value = ''
   apiError.value = ''
 }
 
@@ -227,6 +272,31 @@ textarea { min-height: 90px; padding: 11px 13px; resize: vertical; line-height: 
 select { cursor: pointer; padding-right: 32px; }
 select option { background: #1e293b; color: var(--ink); }
 select:focus, input:focus, textarea:focus { border-color: var(--blue-mid); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+
+/* ── Assinatura digital ── */
+.signature-box {
+  width: 100%; display: flex; align-items: center; gap: 14px; text-align: left;
+  padding: 14px 16px; border: 1.5px dashed var(--border); border-radius: 10px;
+  background: var(--surface-2); color: var(--ink); cursor: pointer; font-family: inherit;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.signature-box:hover { border-color: var(--blue-mid); }
+.signature-box.signed {
+  border-style: solid; border-color: var(--green);
+  background: var(--green-bg); box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
+}
+.signature-box.sig-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+.sig-icon {
+  width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; display: grid; place-items: center;
+  font-size: 17px; background: rgba(59,130,246,0.15); color: var(--blue-mid); transition: all 0.2s;
+}
+.signature-box.signed .sig-icon { background: rgba(34,197,94,0.2); color: var(--green); }
+.sig-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sig-info strong { font-size: 14px; font-weight: 700; }
+.sig-info small { font-size: 11.5px; color: var(--ink-soft); }
+.signature-box.signed .sig-info small { color: var(--green); font-weight: 600; }
+.sig-terms { margin: 12px 2px 0; font-size: 12px; line-height: 1.6; color: var(--ink-soft); }
+.sig-error { display: block; margin-top: 8px; font-size: 11px; color: var(--red); font-weight: 600; }
 
 .field-error { font-size: 11px; color: var(--red); display: none; }
 .invalid select, .invalid input, .invalid textarea { border-color: var(--red) !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.15) !important; }
