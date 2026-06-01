@@ -407,7 +407,7 @@ const errors = reactive({
 })
 
 
-// ─── Máscara e validação CPF ───────────────────────────────────────────────
+// ─── Máscara CPF ───────────────────────────────────────────────────────────
 
 function onCpfInput(e) {
   errors.cpf = ''
@@ -416,19 +416,6 @@ function onCpfInput(e) {
   else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3')
   else if (v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2')
   form.cpf = v
-}
-
-function cpfValido(cpf) {
-  const c = cpf.replace(/\D/g, '')
-  if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false
-  let s = 0
-  for (let i = 0; i < 9; i++) s += +c[i] * (10 - i)
-  let r = (s * 10) % 11; if (r === 10 || r === 11) r = 0
-  if (r !== +c[9]) return false
-  s = 0
-  for (let i = 0; i < 10; i++) s += +c[i] * (11 - i)
-  r = (s * 10) % 11; if (r === 10 || r === 11) r = 0
-  return r === +c[10]
 }
 
 // ─── Validação ─────────────────────────────────────────────────────────────
@@ -444,8 +431,6 @@ function validate() {
   }
   if (!form.cpf.trim()) {
     errors.cpf = 'Informe o CPF.'; ok = false
-  } else if (!cpfValido(form.cpf)) {
-    errors.cpf = 'CPF inválido.'; ok = false
   }
   if (!form.email.trim()) {
     errors.email = 'Informe o e-mail.'; ok = false
