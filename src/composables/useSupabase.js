@@ -58,39 +58,44 @@ async function loadProfile() {
 let resolveReady;
 const ready = new Promise((r) => (resolveReady = r));
 
-async function initSession() {
-  try {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) console.warn("Erro ao buscar sessão:", error.message);
-    session.value = data?.session || null;
-    await loadProfile();
-  } catch (e) {
-    console.warn("Falha ao inicializar sessão:", e?.message || e);
-  } finally {
+function finalizarCarregamento() {
+  if (loadingSession.value) {
     loadingSession.value = false;
     resolveReady();
   }
 }
-initSession();
 
-// Rede de segurança: se a inicialização travar (deadlock de lock, rede presa),
-// libera os guards mesmo assim depois de 4s para não deixar a tela em branco.
+// Fonte ÚNICA da verdade para a sessão: o onAuthStateChange. Ele dispara
+// imediatamente com o evento INITIAL_SESSION (substitui o getSession(), que
+// podia travar/deadlockar), e depois a cada login/logout/refresh.
+//
+// IMPORTANTE: a Supabase recomenda NÃO chamar funções do supabase (queries,
+// getSession, etc.) DENTRO deste callback — isso reentra no lock interno do
+// auth e trava a próxima operação (ex.: o signInWithPassword do login deixa
+// de responder após um logout). Por isso só atualizamos a sessão de forma
+// síncrona aqui e adiamos o loadProfile (que faz query) com setTimeout(0),
+// fora do callback.
+supabase.auth.onAuthStateChange((_event, newSession) => {
+  session.value = newSession;
+  setTimeout(async () => {
+    try {
+      await loadProfile();
+    } catch (e) {
+      console.warn("Falha ao carregar perfil:", e?.message || e);
+    } finally {
+      finalizarCarregamento();
+    }
+  }, 0);
+});
+
+// Rede de segurança: se a inicialização não disparar/travar, libera os guards
+// mesmo assim depois de 4s para não deixar a tela em branco/carregando.
 setTimeout(() => {
   if (loadingSession.value) {
-    console.warn("[EPIra] initSession demorou demais; liberando navegação.");
-    loadingSession.value = false;
-    resolveReady();
+    console.warn("[EPIra] sessão demorou demais; liberando navegação.");
+    finalizarCarregamento();
   }
 }, 4000);
-
-supabase.auth.onAuthStateChange(async (_event, newSession) => {
-  session.value = newSession;
-  try {
-    await loadProfile();
-  } catch (e) {
-    console.warn("Falha ao carregar perfil:", e?.message || e);
-  }
-});
 
 // Usado pelos guards de rota: garante que sessão/perfil estejam resolvidos.
 async function currentProfile() {
