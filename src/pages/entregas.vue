@@ -637,12 +637,9 @@ async function submitForm() {
 
     if (error) throw error
 
-    if (!editingId.value) {
-      const { data: epiAtual } = await supabase.from('epis').select('quantidade').eq('id', form.epi_id).single()
-      const delta   = form.tipo === 'entrega' ? -form.quantidade : form.quantidade
-      const novaQtd = Math.max(0, (epiAtual?.quantidade ?? 0) + delta)
-      await supabase.from('epis').update({ quantidade: novaQtd }).eq('id', form.epi_id)
-    }
+    // O estoque é ajustado automaticamente pelo trigger trg_mov_estoque no banco
+    // (saída em 'entrega', entrada em 'devolucao', com validação de estoque
+    // insuficiente). Não atualizar aqui para não descontar em duplicidade.
 
     lastTipo.value     = form.tipo
     lastProtocol.value = String(docCounter.value).padStart(6, '0')
