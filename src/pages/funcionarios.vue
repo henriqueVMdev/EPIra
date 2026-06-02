@@ -3,175 +3,17 @@
 
     <!-- Header -->
     <div class="page-header">
-      <h1>Cadastro de <span>Funcionários</span></h1>
-      <p class="subtitle">Preencha os dados abaixo para registrar um novo funcionário no sistema.</p>
+      <h1>Gestão de <span>Funcionários</span></h1>
+      <p class="subtitle">Gerencie o departamento, a função e as permissões dos usuários. Novos funcionários entram pelo cadastro de conta.</p>
     </div>
 
-    <!-- Card -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-header-icon">👷</div>
-        <div class="card-header-text">
-          <h2>Ficha de Cadastro de Funcionários</h2>
-          <p>Todos os campos marcados com * são obrigatórios</p>
-        </div>
-        <div class="doc-number">Nº {{ docNumber }}</div>
-      </div>
-
-      <div class="card-body">
-        <form @submit.prevent="submitForm" novalidate>
-
-          <!-- Dados Pessoais -->
-          <div class="section">
-            <div class="section-label">Dados Pessoais</div>
-            <div class="field-grid">
-
-              <div class="field" :class="{ invalid: errors.nome }">
-                <label for="nome">Nome Completo <span class="required">*</span></label>
-                <input
-                  id="nome"
-                  type="text"
-                  v-model="form.nome"
-                  placeholder="Ex: João da Silva Santos"
-                  @input="errors.nome = ''"
-                />
-                <span class="field-error">{{ errors.nome }}</span>
-              </div>
-
-              <div class="field-grid field-grid-2">
-                <div class="field" :class="{ invalid: errors.matricula }">
-                  <label for="matricula">Nº Matrícula <span class="required">*</span></label>
-                  <input
-                    id="matricula"
-                    type="text"
-                    v-model="form.matricula"
-                    placeholder="Ex: 001234"
-                    @input="errors.matricula = ''"
-                  />
-                  <span class="field-error">{{ errors.matricula }}</span>
-                </div>
-
-                <div class="field" :class="{ invalid: errors.cpf }">
-                  <label for="cpf">CPF <span class="required">*</span></label>
-                  <input
-                    id="cpf"
-                    type="text"
-                    v-model="form.cpf"
-                    placeholder="000.000.000-00"
-                    maxlength="14"
-                    @input="onCpfInput"
-                  />
-                  <span class="field-error">{{ errors.cpf }}</span>
-                </div>
-              </div>
-
-              <div class="field" :class="{ invalid: errors.email }">
-                <label for="email">E-mail <span class="required">*</span></label>
-                <div class="input-icon-wrap">
-                  <i class="fas fa-envelope input-icon"></i>
-                  <input
-                    id="email"
-                    type="text"
-                    v-model="form.email"
-                    placeholder="Ex: joao.silva@empresa.com.br"
-                    @input="errors.email = ''"
-                    class="with-icon"
-                  />
-                </div>
-                <span class="field-error">{{ errors.email }}</span>
-              </div>
-
-            </div>
-          </div>
-
-          <!-- Dados Profissionais -->
-          <div class="section">
-            <div class="section-label">Dados Profissionais</div>
-            <div class="field-grid">
-
-              <div class="field-grid field-grid-2">
-                <div class="field" :class="{ invalid: errors.departamento }">
-                  <label for="departamento">Departamento <span class="required">*</span></label>
-                  <div class="select-wrap">
-                    <select
-                      id="departamento"
-                      v-model="form.departamento"
-                      @change="errors.departamento = ''"
-                    >
-                      <option value="">Selecionar departamento...</option>
-                      <option>Produção</option>
-                      <option>Manutenção</option>
-                      <option>Logística</option>
-                      <option>Almoxarifado</option>
-                      <option>Segurança do Trabalho</option>
-                      <option>Recursos Humanos</option>
-                      <option>Administrativo</option>
-                      <option>Financeiro</option>
-                      <option>Tecnologia da Informação</option>
-                      <option>Qualidade</option>
-                    </select>
-                  </div>
-                  <span class="field-error">{{ errors.departamento }}</span>
-                </div>
-
-                <div class="field" :class="{ invalid: errors.cargo }">
-                  <label for="cargo">Cargo <span class="required">*</span></label>
-                  <input
-                    id="cargo"
-                    type="text"
-                    v-model="form.cargo"
-                    placeholder="Ex: Operador de Máquinas"
-                    @input="errors.cargo = ''"
-                  />
-                  <span class="field-error">{{ errors.cargo }}</span>
-                </div>
-              </div>
-
-              <div class="field">
-                <label for="user_id">Conta de login (opcional)</label>
-                <div class="select-wrap">
-                  <select id="user_id" v-model="form.user_id">
-                    <option value="">Sem vínculo</option>
-                    <option v-for="u in usuarios" :key="u.id" :value="u.id">
-                      {{ u.nome || u.email }}
-                    </option>
-                  </select>
-                </div>
-                <span class="field-hint">Vincule a uma conta que faz login para que a pessoa receba EPIs e veja em "Meus EPIs".</span>
-              </div>
-
-            </div>
-          </div>
-
-        </form>
-      </div>
-
-      <!-- Footer -->
-      <div class="card-footer">
-        <span class="footer-info">Dados armazenados com segurança</span>
-        <div class="btn-group">
-          <button class="btn btn-ghost" type="button" @click="resetForm">↺ {{ editingId ? 'Cancelar' : 'Limpar' }}</button>
-          <button
-            class="btn btn-primary"
-            type="button"
-            :disabled="submitting"
-            @click="submitForm"
-          >
-            <span v-if="submitting" class="spinner"></span>
-            <i v-else class="fas fa-save"></i>
-            {{ submitting ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Cadastrar Funcionário' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabela de funcionários cadastrados -->
+    <!-- Tabela de funcionários -->
     <div class="table-card">
       <div class="table-header">
         <div class="table-header-icon">👥</div>
         <div class="table-header-text">
-          <h2>Funcionários Cadastrados</h2>
-          <p>Lista de todos os colaboradores registrados no sistema</p>
+          <h2>Funcionários</h2>
+          <p>Todos os usuários cadastrados no sistema</p>
         </div>
         <span class="func-count">{{ funcionarios.length }} registro{{ funcionarios.length !== 1 ? 's' : '' }}</span>
       </div>
@@ -181,7 +23,7 @@
       </div>
 
       <div v-else-if="funcionarios.length === 0" class="table-empty">
-        Nenhum funcionário cadastrado ainda.
+        Nenhum funcionário cadastrado ainda. Novos usuários aparecem aqui após criarem a conta.
       </div>
 
       <div v-else class="table-wrap">
@@ -189,27 +31,32 @@
           <thead>
             <tr>
               <th>Nome</th>
-              <th>Matrícula</th>
               <th>CPF</th>
-              <th>Departamento</th>
-              <th>Cargo</th>
               <th>E-mail</th>
-              <th>Login</th>
+              <th>Departamento</th>
+              <th>Função</th>
+              <th class="col-center">Permissão</th>
               <th class="col-center">Status</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="f in funcionarios" :key="f.id">
-              <td class="td-nome">{{ f.nome }}</td>
-              <td class="td-mono">#{{ f.matricula }}</td>
+              <td class="td-nome">{{ f.nome || '—' }}</td>
               <td class="td-mono">{{ f.cpf ? f.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '—' }}</td>
-              <td><span class="badge-depto">{{ f.departamento }}</span></td>
-              <td class="td-cargo">{{ f.cargo }}</td>
               <td class="td-email">{{ f.email }}</td>
-              <td class="td-email">
-                <span v-if="f.conta">{{ f.conta.nome || f.conta.email }}</span>
-                <span v-else style="opacity:.5">— sem vínculo</span>
+              <td>
+                <span v-if="f.departamento" class="badge-depto">{{ f.departamento }}</span>
+                <span v-else style="opacity:.5">—</span>
+              </td>
+              <td class="td-cargo">{{ f.cargo || '—' }}</td>
+              <td class="col-center">
+                <span
+                  class="badge-depto"
+                  :style="f.role === 'adm' ? 'background:rgba(34,197,94,0.12);color:#4ade80;border-color:rgba(34,197,94,0.25)' : ''"
+                >
+                  {{ f.role === 'adm' ? 'Administrador' : 'Funcionário' }}
+                </span>
               </td>
               <td class="col-center">
                 <span class="badge-status" :class="f.ativo ? 'status-ativo' : 'status-inativo'">
@@ -218,7 +65,6 @@
               </td>
               <td class="td-actions">
                 <button class="btn-edit" @click="editRecord(f)"><i class="fas fa-pencil-alt"></i> Editar</button>
-                <button class="btn-delete" @click="confirmDelete(f)"><i class="fas fa-trash-alt"></i> Excluir</button>
               </td>
             </tr>
           </tbody>
@@ -227,7 +73,7 @@
     </div>
 
     <!-- Erro global -->
-    <div v-if="apiError" class="api-error">
+    <div v-if="apiError && !showEditModal" class="api-error">
       <i class="fas fa-exclamation-triangle"></i> {{ apiError }}
     </div>
 
@@ -239,7 +85,7 @@
             <div class="card-header-icon" style="font-size:16px">✏️</div>
             <div class="edit-modal-title">
               <h3>Editar Funcionário</h3>
-              <p>Altere os dados e salve as alterações</p>
+              <p>Defina departamento, função e permissões</p>
             </div>
             <button class="modal-close-btn" @click="closeEditModal">✕</button>
           </div>
@@ -252,29 +98,22 @@
             </div>
 
             <div class="field-grid field-grid-2" style="margin-top:14px">
-              <div class="field" :class="{ invalid: errors.matricula }">
-                <label>Nº Matrícula <span class="required">*</span></label>
-                <input type="text" v-model="form.matricula" @input="errors.matricula = ''" />
-                <span class="field-error">{{ errors.matricula }}</span>
+              <div class="field">
+                <label>E-mail (login)</label>
+                <input type="text" :value="form.email" disabled />
               </div>
               <div class="field" :class="{ invalid: errors.cpf }">
-                <label>CPF <span class="required">*</span></label>
+                <label>CPF</label>
                 <input type="text" v-model="form.cpf" maxlength="14" @input="onCpfInput" />
                 <span class="field-error">{{ errors.cpf }}</span>
               </div>
             </div>
 
-            <div class="field" style="margin-top:14px" :class="{ invalid: errors.email }">
-              <label>E-mail <span class="required">*</span></label>
-              <input type="text" v-model="form.email" @input="errors.email = ''" />
-              <span class="field-error">{{ errors.email }}</span>
-            </div>
-
             <div class="field-grid field-grid-2" style="margin-top:14px">
-              <div class="field" :class="{ invalid: errors.departamento }">
-                <label>Departamento <span class="required">*</span></label>
+              <div class="field">
+                <label>Departamento</label>
                 <div class="select-wrap">
-                  <select v-model="form.departamento" @change="errors.departamento = ''">
+                  <select v-model="form.departamento">
                     <option value="">Selecionar departamento...</option>
                     <option>Produção</option>
                     <option>Manutenção</option>
@@ -288,22 +127,31 @@
                     <option>Qualidade</option>
                   </select>
                 </div>
-                <span class="field-error">{{ errors.departamento }}</span>
               </div>
-              <div class="field" :class="{ invalid: errors.cargo }">
-                <label>Cargo <span class="required">*</span></label>
-                <input type="text" v-model="form.cargo" @input="errors.cargo = ''" />
-                <span class="field-error">{{ errors.cargo }}</span>
+              <div class="field">
+                <label>Função</label>
+                <input type="text" v-model="form.cargo" placeholder="Ex: Operador de Máquinas" />
               </div>
             </div>
 
-            <div class="field" style="margin-top:14px">
-              <label>Conta de login (opcional)</label>
-              <div class="select-wrap">
-                <select v-model="form.user_id">
-                  <option value="">Sem vínculo</option>
-                  <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.nome || u.email }}</option>
-                </select>
+            <div class="field-grid field-grid-2" style="margin-top:14px">
+              <div class="field">
+                <label>Permissão</label>
+                <div class="select-wrap">
+                  <select v-model="form.role">
+                    <option value="funcionario">Funcionário</option>
+                    <option value="adm">Administrador</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <label>Status</label>
+                <div class="select-wrap">
+                  <select v-model="form.ativo">
+                    <option :value="true">Ativo</option>
+                    <option :value="false">Inativo</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -324,60 +172,11 @@
       </div>
     </Transition>
 
-    <!-- Modal sucesso -->
-    <Transition name="fade">
-      <div v-if="showSuccess" class="success-overlay" @click="closeSuccess">
-        <div class="success-card" @click.stop>
-          <div class="success-icon">
-            <i class="fas fa-check"></i>
-          </div>
-          <h3>Funcionário Cadastrado!</h3>
-          <p>O registro foi salvo com sucesso no sistema.</p>
-          <div class="success-info">
-            <div class="success-info-row">
-              <span class="success-info-label">Nome</span>
-              <span class="success-info-value">{{ lastSaved.nome }}</span>
-            </div>
-            <div class="success-info-row">
-              <span class="success-info-label">Matrícula</span>
-              <span class="success-info-value">#{{ lastSaved.matricula }}</span>
-            </div>
-            <div class="success-info-row">
-              <span class="success-info-label">Cargo</span>
-              <span class="success-info-value">{{ lastSaved.cargo }}</span>
-            </div>
-          </div>
-          <button class="btn btn-primary" style="width:100%;justify-content:center" @click="closeSuccess">
-            <i class="fas fa-plus"></i> Novo Cadastro
-          </button>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- Modal de confirmação de exclusão -->
-    <Transition name="fade">
-      <div v-if="showDeleteModal" class="success-overlay" @click="cancelDelete">
-        <div class="delete-modal" @click.stop>
-          <div class="delete-modal-icon"><i class="fas fa-trash-alt"></i></div>
-          <h3>Excluir Funcionário</h3>
-          <p>Tem certeza que deseja excluir <strong>{{ deletingItem?.nome }}</strong>? Esta ação não pode ser desfeita.</p>
-          <div class="delete-modal-actions">
-            <button class="btn btn-ghost" @click="cancelDelete">Cancelar</button>
-            <button class="btn btn-danger" @click="executeDelete" :disabled="deleting">
-              <span v-if="deleting" class="spinner"></span>
-              <i v-else class="fas fa-trash-alt"></i>
-              {{ deleting ? 'Excluindo...' : 'Excluir' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useSupabase } from '@/composables/useSupabase'
 
 const { supabase } = useSupabase()
@@ -385,23 +184,19 @@ const { supabase } = useSupabase()
 // ─── Estado ────────────────────────────────────────────────────────────────
 
 const submitting          = ref(false)
-const showSuccess         = ref(false)
 const showEditModal       = ref(false)
-const showDeleteModal     = ref(false)
-const deletingItem        = ref(null)
-const deleting            = ref(false)
 const apiError            = ref('')
-const docCounter          = ref(1)
-const lastSaved           = ref({})
 const funcionarios        = ref([])
 const loadingFuncionarios = ref(false)
 const editingId           = ref(null)
 
+// Pessoas = usuários do sistema (profiles). Os dados pessoais (nome, cpf, e-mail)
+// vêm do cadastro de conta; o admin gerencia departamento, função e permissão.
 async function fetchFuncionarios() {
   loadingFuncionarios.value = true
   const { data, error } = await supabase
-    .from('funcionarios')
-    .select('id, nome, matricula, cpf, email, departamento, cargo, ativo, user_id, conta:user_id(nome, email)')
+    .from('profiles')
+    .select('id, nome, email, cpf, departamento, cargo, role, ativo')
     .order('nome', { ascending: true })
   if (error) {
     apiError.value = 'Erro ao carregar funcionários: ' + error.message
@@ -411,43 +206,20 @@ async function fetchFuncionarios() {
   loadingFuncionarios.value = false
 }
 
-// Usuários que fazem login (profiles), para vincular ao funcionário.
-const usuarios = ref([])
-async function fetchUsuarios() {
-  const { data } = await supabase
-    .from('profiles')
-    .select('id, nome, email')
-    .order('nome', { ascending: true })
-  usuarios.value = data ?? []
-}
-
-onMounted(() => {
-  fetchFuncionarios()
-  fetchUsuarios()
-})
-
-const docNumber = computed(() => String(docCounter.value).padStart(6, '0'))
+onMounted(fetchFuncionarios)
 
 const initialForm = () => ({
   nome:         '',
-  matricula:    '',
   cpf:          '',
   email:        '',
   departamento: '',
   cargo:        '',
-  user_id:      '',
+  role:         'funcionario',
+  ativo:        true,
 })
 
 const form   = reactive(initialForm())
-const errors = reactive({
-  nome:         '',
-  matricula:    '',
-  cpf:          '',
-  email:        '',
-  departamento: '',
-  cargo:        '',
-})
-
+const errors = reactive({ nome: '', cpf: '' })
 
 // ─── Máscara e validação CPF ───────────────────────────────────────────────
 
@@ -477,68 +249,42 @@ function cpfValido(cpf) {
 
 function validate() {
   let ok = true
-
   if (!form.nome.trim()) {
     errors.nome = 'Informe o nome completo.'; ok = false
   }
-  if (!form.matricula.trim()) {
-    errors.matricula = 'Informe o número de matrícula.'; ok = false
-  }
-  if (!form.cpf.trim()) {
-    errors.cpf = 'Informe o CPF.'; ok = false
-  } else if (!cpfValido(form.cpf)) {
+  if (form.cpf.trim() && !cpfValido(form.cpf)) {
     errors.cpf = 'CPF inválido.'; ok = false
   }
-  if (!form.email.trim()) {
-    errors.email = 'Informe o e-mail.'; ok = false
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    errors.email = 'E-mail inválido.'; ok = false
-  }
-  if (!form.departamento) {
-    errors.departamento = 'Selecione o departamento.'; ok = false
-  }
-  if (!form.cargo.trim()) {
-    errors.cargo = 'Informe o cargo.'; ok = false
-  }
-
   return ok
 }
 
-// ─── Submit ────────────────────────────────────────────────────────────────
+// ─── Submit (apenas edição) ──────────────────────────────────────────────────
 
 async function submitForm() {
   apiError.value = ''
+  if (!editingId.value) return
   if (!validate()) return
 
   submitting.value = true
   try {
     const payload = {
       nome:         form.nome.trim(),
-      matricula:    form.matricula.trim(),
-      cpf:          form.cpf.replace(/\D/g, ''),
-      email:        form.email.trim().toLowerCase(),
-      departamento: form.departamento,
-      cargo:        form.cargo.trim(),
-      user_id:      form.user_id || null,
-      ativo:        true,
+      cpf:          form.cpf.replace(/\D/g, '') || null,
+      departamento: form.departamento || null,
+      cargo:        form.cargo.trim() || null,
+      role:         form.role,
+      ativo:        form.ativo,
     }
 
-    let error
-    if (editingId.value) {
-      ;({ error } = await supabase.from('funcionarios').update(payload).eq('id', editingId.value))
-    } else {
-      ;({ error } = await supabase.from('funcionarios').insert([payload]))
-    }
-
+    const { error } = await supabase.from('profiles').update(payload).eq('id', editingId.value)
     if (error) throw error
 
-    lastSaved.value   = { ...form }
-    showSuccess.value = true
+    showEditModal.value = false
+    resetForm()
+    await fetchFuncionarios()
   } catch (e) {
     if (e.code === '23505') {
-      if (e.message.includes('matricula')) errors.matricula = 'Matrícula já cadastrada.'
-      else if (e.message.includes('cpf'))  errors.cpf       = 'CPF já cadastrado.'
-      else apiError.value = 'Registro duplicado: verifique matrícula ou CPF.'
+      errors.cpf = 'CPF já cadastrado.'
     } else {
       apiError.value = 'Erro ao salvar: ' + e.message
     }
@@ -552,15 +298,16 @@ function editRecord(f) {
     ? f.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
     : ''
   Object.assign(form, {
-    nome:         f.nome,
-    matricula:    f.matricula,
+    nome:         f.nome || '',
     cpf:          cpfFormatado,
-    email:        f.email,
-    departamento: f.departamento,
-    cargo:        f.cargo,
-    user_id:      f.user_id ?? '',
+    email:        f.email || '',
+    departamento: f.departamento || '',
+    cargo:        f.cargo || '',
+    role:         f.role || 'funcionario',
+    ativo:        f.ativo,
   })
-  Object.keys(errors).forEach(k => (errors[k] = ''))
+  errors.nome = ''
+  errors.cpf  = ''
   editingId.value     = f.id
   apiError.value      = ''
   showEditModal.value = true
@@ -571,48 +318,12 @@ function closeEditModal() {
   resetForm()
 }
 
-// ─── Reset ─────────────────────────────────────────────────────────────────
-
 function resetForm() {
   Object.assign(form, initialForm())
-  Object.keys(errors).forEach(k => (errors[k] = ''))
+  errors.nome = ''
+  errors.cpf  = ''
   apiError.value  = ''
   editingId.value = null
-}
-
-function confirmDelete(f) {
-  deletingItem.value    = f
-  showDeleteModal.value = true
-}
-
-async function executeDelete() {
-  if (!deletingItem.value) return
-  deleting.value = true
-  try {
-    const { error } = await supabase.from('funcionarios').delete().eq('id', deletingItem.value.id)
-    if (error) throw error
-    showDeleteModal.value = false
-    deletingItem.value    = null
-    await fetchFuncionarios()
-  } catch (e) {
-    apiError.value = 'Erro ao excluir: ' + e.message
-  } finally {
-    deleting.value = false
-  }
-}
-
-function cancelDelete() {
-  showDeleteModal.value = false
-  deletingItem.value    = null
-}
-
-function closeSuccess() {
-  showSuccess.value   = false
-  showEditModal.value = false
-  if (!editingId.value) docCounter.value++
-  editingId.value     = null
-  resetForm()
-  fetchFuncionarios()
 }
 </script>
 
@@ -809,6 +520,8 @@ input[type="text"]:focus {
   border-color: var(--blue-mid);
   box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
 }
+
+input[type="text"]:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Input com ícone */
 .input-icon-wrap { position: relative; }
@@ -1260,92 +973,4 @@ td {
 }
 
 .td-actions { display: flex; gap: 6px; align-items: center; }
-
-.btn-delete {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 11px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--ink-soft);
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.btn-delete:hover {
-  border-color: var(--red);
-  color: var(--red);
-  background: rgba(239,68,68,0.08);
-}
-
-.delete-modal {
-  background: #161B27;
-  border: 1.5px solid var(--border);
-  border-radius: 16px;
-  padding: 36px 40px;
-  text-align: center;
-  max-width: 380px;
-  width: 90%;
-  animation: popIn 0.35s cubic-bezier(0.16,1,0.3,1);
-}
-
-.delete-modal-icon {
-  width: 56px;
-  height: 56px;
-  background: rgba(239,68,68,0.15);
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 22px;
-  color: var(--red);
-  margin: 0 auto 18px;
-}
-
-.delete-modal h3 {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--ink);
-  margin: 0 0 10px;
-}
-
-.delete-modal p {
-  font-size: 13px;
-  color: var(--ink-soft);
-  line-height: 1.6;
-  margin-bottom: 24px;
-}
-
-.delete-modal-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-}
-
-.btn-danger {
-  height: 40px;
-  padding: 0 20px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  border: none;
-  background: var(--red);
-  color: white;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-family: inherit;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(239,68,68,0.35);
-}
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-  transform: translateY(-1px);
-}
-.btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>

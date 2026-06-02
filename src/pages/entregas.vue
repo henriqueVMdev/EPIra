@@ -501,19 +501,17 @@ onMounted(async () => {
 async function fetchFuncionarios() {
   loadingFuncionarios.value = true
   try {
-    // Lista os funcionários (cadastro de RH) ATIVOS que estão vinculados a uma
-    // conta de login. A entrega é gravada com profile_id = user_id do vínculo,
-    // para que o EPI apareça em "Meus EPIs" da pessoa que loga.
+    // Lista as pessoas (profiles) ATIVAS. A entrega é vinculada ao profile_id,
+    // para que o EPI apareça em "Meus EPIs" da pessoa.
     const { data, error } = await supabase
-      .from('funcionarios')
-      .select('nome, user_id')
+      .from('profiles')
+      .select('id, nome')
       .eq('ativo', true)
-      .not('user_id', 'is', null)
+      .not('nome', 'is', null)
+      .neq('nome', '')
       .order('nome')
     if (error) throw error
-    // Mapeia para { id: user_id, nome } — assim o restante do fluxo (form.profile_id
-    // e payload.profile_id) continua funcionando sem alterações.
-    funcionarios.value = (data ?? []).map(f => ({ id: f.user_id, nome: f.nome }))
+    funcionarios.value = data ?? []
   } catch (e) {
     apiError.value = 'Erro ao carregar funcionários: ' + e.message
   } finally {

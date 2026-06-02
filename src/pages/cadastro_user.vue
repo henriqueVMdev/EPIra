@@ -50,28 +50,15 @@
           />
         </div>
 
-        <div class="grade-dupla">
-          <div class="campo">
-            <label for="cpf">CPF</label>
-            <input
-              id="cpf"
-              v-model="form.cpf"
-              type="text"
-              placeholder="000.000.000-00"
-              class="entrada"
-            />
-          </div>
-
-          <div class="campo">
-            <label for="cargo">Cargo</label>
-            <input
-              id="cargo"
-              v-model="form.cargo"
-              type="text"
-              placeholder="Ex: Técnico de Segurança"
-              class="entrada"
-            />
-          </div>
+        <div class="campo">
+          <label for="cpf">CPF</label>
+          <input
+            id="cpf"
+            v-model="form.cpf"
+            type="text"
+            placeholder="000.000.000-00"
+            class="entrada"
+          />
         </div>
 
         <div class="campo">
@@ -137,7 +124,6 @@ const form = reactive({
   nome: '',
   email: '',
   cpf: '',
-  cargo: '',
   senha: '',
   confirmar: '',
 })
@@ -178,7 +164,6 @@ async function criar() {
       data: {
         nome: form.nome,
         cpf: form.cpf.replace(/\D/g, '') || null,
-        cargo: form.cargo || null,
       },
     },
   })
