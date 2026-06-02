@@ -29,15 +29,15 @@
                 <div class="select-wrap">
                   <select
                     id="funcionario"
-                    v-model="form.funcionario"
+                    v-model="form.profile_id"
                     :disabled="loadingFuncionarios"
                     @change="errors.funcionario = ''"
                   >
                     <option value="">
                       {{ loadingFuncionarios ? 'Carregando...' : 'Selecionar funcionário...' }}
                     </option>
-                    <option v-for="f in funcionarios" :key="f.id" :value="f.nome">
-                      {{ f.matricula ? f.matricula + ' — ' : '' }}{{ f.nome }}
+                    <option v-for="f in funcionarios" :key="f.id" :value="f.id">
+                      {{ f.nome }}
                     </option>
                   </select>
                 </div>
@@ -293,10 +293,10 @@
               <div class="field" :class="{ invalid: errors.funcionario }">
                 <label>Funcionário <span class="required">*</span></label>
                 <div class="select-wrap">
-                  <select v-model="form.funcionario" @change="errors.funcionario = ''">
+                  <select v-model="form.profile_id" @change="errors.funcionario = ''">
                     <option value="">Selecionar funcionário...</option>
-                    <option v-for="f in funcionarios" :key="f.id" :value="f.nome">
-                      {{ f.matricula ? f.matricula + ' — ' : '' }}{{ f.nome }}
+                    <option v-for="f in funcionarios" :key="f.id" :value="f.id">
+                      {{ f.nome }}
                     </option>
                   </select>
                 </div>
@@ -465,6 +465,7 @@ const today = new Date().toISOString().split('T')[0]
 
 const initialForm = () => ({
   funcionario:           '',
+  profile_id:            '',
   tipo:                  '',
   epi_id:                '',
   quantidade:            1,
@@ -500,10 +501,13 @@ onMounted(async () => {
 async function fetchFuncionarios() {
   loadingFuncionarios.value = true
   try {
+    // Lista os usuários que realmente logam (profiles). A entrega é vinculada
+    // ao profile_id, para que o EPI apareça em "Meus EPIs" do funcionário.
     const { data, error } = await supabase
-      .from('funcionarios')
-      .select('id, nome, matricula')
-      .eq('ativo', true)
+      .from('profiles')
+      .select('id, nome')
+      .not('nome', 'is', null)
+      .neq('nome', '')
       .order('nome')
     if (error) throw error
     funcionarios.value = data ?? []
@@ -542,7 +546,7 @@ async function fetchMovimentacoes() {
   loadingMovimentacoes.value = true
   const { data, error } = await supabase
     .from('movimentacoes')
-    .select('id, funcionario, tipo, quantidade, data, assinatura_confirmada, observacoes, epis(nome, ca, validade)')
+    .select('id, funcionario, profile_id, tipo, quantidade, data, assinatura_confirmada, observacoes, epis(nome, ca, validade)')
     .order('data', { ascending: false })
   if (error) {
     apiError.value = 'Erro ao carregar movimentações: ' + error.message
@@ -562,7 +566,7 @@ function decQty() { if (form.quantidade > 1)   form.quantidade-- }
 function validate() {
   let ok = true
 
-  if (!form.funcionario.trim()) {
+  if (!form.profile_id) {
     errors.funcionario = 'Selecione um funcionário.'
     ok = false
   }
@@ -609,8 +613,13 @@ async function submitForm() {
       obsTexto = `${label}${form.observacoes ? ' — ' + form.observacoes : ''}`
     }
 
+    // Nome do funcionário (profile) selecionado — guardado para exibição na
+    // tabela; o vínculo real é o profile_id.
+    const profileSel = funcionarios.value.find(f => f.id === form.profile_id)
+
     const payload = {
-      funcionario:           form.funcionario.trim(),
+      funcionario:           profileSel?.nome ?? form.funcionario.trim(),
+      profile_id:            form.profile_id,
       tipo:                  form.tipo,
       epi_id:                form.epi_id,
       quantidade:            form.quantidade,
@@ -648,6 +657,7 @@ async function submitForm() {
 function editRecord(m) {
   Object.assign(form, {
     funcionario:           m.funcionario,
+    profile_id:            m.profile_id ?? '',
     tipo:                  m.tipo,
     epi_id:                m.epi_id,
     quantidade:            m.quantidade,

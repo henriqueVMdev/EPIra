@@ -137,11 +137,11 @@ async function carregarAlertas() {
     const perfilId = profile.value?.id ?? null;
     if (perfilId === perfilCarregado) return;
     perfilCarregado = perfilId;
-    if (isAdm.value || !profile.value?.nome) {
+    if (isAdm.value || !profile.value?.id) {
       episEmPosse.value = [];
       return;
     }
-    episEmPosse.value = await fetchEpisEmPosse(profile.value.nome);
+    episEmPosse.value = await fetchEpisEmPosse(profile.value.id);
   } catch (e) {
     console.warn("Falha ao carregar alertas de validade:", e?.message || e);
     episEmPosse.value = [];

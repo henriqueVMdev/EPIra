@@ -99,7 +99,7 @@ async function carregar() {
   apiError.value = ''
   try {
     await currentProfile()
-    epis.value = await fetchEpisEmPosse(profile.value?.nome)
+    epis.value = await fetchEpisEmPosse(profile.value?.id)
   } catch (e) {
     apiError.value = 'Erro ao carregar seus EPIs: ' + e.message
   } finally {

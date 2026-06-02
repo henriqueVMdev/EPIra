@@ -31,17 +31,17 @@ export function diasParaVencer(validade) {
   return Math.round((dt - hoje) / (1000 * 60 * 60 * 24));
 }
 
-// Calcula os EPIs em posse de um funcionário (pelo nome) a partir das
+// Calcula os EPIs em posse de um funcionário (pelo profile_id) a partir das
 // movimentações: soma entregas e subtrai devoluções por EPI. Retorna apenas
 // os itens com saldo > 0, já com dados de validade e status.
-export async function fetchEpisEmPosse(nomeFuncionario) {
+export async function fetchEpisEmPosse(profileId) {
   const { supabase } = useSupabase();
-  if (!nomeFuncionario) return [];
+  if (!profileId) return [];
 
   const { data, error } = await supabase
     .from("movimentacoes")
     .select("tipo, quantidade, epi_id, epis(nome, ca, categoria, validade)")
-    .eq("funcionario", nomeFuncionario);
+    .eq("profile_id", profileId);
 
   if (error) throw error;
 
