@@ -461,7 +461,7 @@ async function cadastrar() {
       categoria:  form.categoria,
       ca:         form.ca.trim() || null,
       validade:   form.validade  || null,
-      quantidade: form.quantidade,
+      quantidade: Number(form.quantidade) || 0,
       obs:        form.obs.trim() || null,
     }
 
