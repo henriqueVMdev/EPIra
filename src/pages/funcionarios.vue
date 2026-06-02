@@ -127,6 +127,19 @@
                 </div>
               </div>
 
+              <div class="field">
+                <label for="user_id">Conta de login (opcional)</label>
+                <div class="select-wrap">
+                  <select id="user_id" v-model="form.user_id">
+                    <option value="">Sem vínculo</option>
+                    <option v-for="u in usuarios" :key="u.id" :value="u.id">
+                      {{ u.nome || u.email }}
+                    </option>
+                  </select>
+                </div>
+                <span class="field-hint">Vincule a uma conta que faz login para que a pessoa receba EPIs e veja em "Meus EPIs".</span>
+              </div>
+
             </div>
           </div>
 
@@ -181,6 +194,7 @@
               <th>Departamento</th>
               <th>Cargo</th>
               <th>E-mail</th>
+              <th>Login</th>
               <th class="col-center">Status</th>
               <th></th>
             </tr>
@@ -193,6 +207,10 @@
               <td><span class="badge-depto">{{ f.departamento }}</span></td>
               <td class="td-cargo">{{ f.cargo }}</td>
               <td class="td-email">{{ f.email }}</td>
+              <td class="td-email">
+                <span v-if="f.conta">{{ f.conta.nome || f.conta.email }}</span>
+                <span v-else style="opacity:.5">— sem vínculo</span>
+              </td>
               <td class="col-center">
                 <span class="badge-status" :class="f.ativo ? 'status-ativo' : 'status-inativo'">
                   {{ f.ativo ? 'Ativo' : 'Inativo' }}
@@ -276,6 +294,16 @@
                 <label>Cargo <span class="required">*</span></label>
                 <input type="text" v-model="form.cargo" @input="errors.cargo = ''" />
                 <span class="field-error">{{ errors.cargo }}</span>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:14px">
+              <label>Conta de login (opcional)</label>
+              <div class="select-wrap">
+                <select v-model="form.user_id">
+                  <option value="">Sem vínculo</option>
+                  <option v-for="u in usuarios" :key="u.id" :value="u.id">{{ u.nome || u.email }}</option>
+                </select>
               </div>
             </div>
 
@@ -373,7 +401,7 @@ async function fetchFuncionarios() {
   loadingFuncionarios.value = true
   const { data, error } = await supabase
     .from('funcionarios')
-    .select('id, nome, matricula, cpf, email, departamento, cargo, ativo')
+    .select('id, nome, matricula, cpf, email, departamento, cargo, ativo, user_id, conta:user_id(nome, email)')
     .order('nome', { ascending: true })
   if (error) {
     apiError.value = 'Erro ao carregar funcionários: ' + error.message
@@ -383,7 +411,20 @@ async function fetchFuncionarios() {
   loadingFuncionarios.value = false
 }
 
-onMounted(fetchFuncionarios)
+// Usuários que fazem login (profiles), para vincular ao funcionário.
+const usuarios = ref([])
+async function fetchUsuarios() {
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, nome, email')
+    .order('nome', { ascending: true })
+  usuarios.value = data ?? []
+}
+
+onMounted(() => {
+  fetchFuncionarios()
+  fetchUsuarios()
+})
 
 const docNumber = computed(() => String(docCounter.value).padStart(6, '0'))
 
@@ -394,6 +435,7 @@ const initialForm = () => ({
   email:        '',
   departamento: '',
   cargo:        '',
+  user_id:      '',
 })
 
 const form   = reactive(initialForm())
@@ -477,6 +519,7 @@ async function submitForm() {
       email:        form.email.trim().toLowerCase(),
       departamento: form.departamento,
       cargo:        form.cargo.trim(),
+      user_id:      form.user_id || null,
       ativo:        true,
     }
 
@@ -515,6 +558,7 @@ function editRecord(f) {
     email:        f.email,
     departamento: f.departamento,
     cargo:        f.cargo,
+    user_id:      f.user_id ?? '',
   })
   Object.keys(errors).forEach(k => (errors[k] = ''))
   editingId.value     = f.id
