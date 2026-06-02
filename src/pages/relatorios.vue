@@ -370,8 +370,11 @@ const estoquesFiltrado = computed(() =>
 // ─── Fetch ─────────────────────────────────────────────────────────────────
 async function carregarFuncionarios() {
   const { data } = await supabase
-    .from('funcionarios')           // ← ajuste
+    .from('profiles')
     .select('id, nome')
+    .eq('ativo', true)
+    .not('nome', 'is', null)
+    .neq('nome', '')
     .order('nome')
   funcionarios.value = data || []
 }
