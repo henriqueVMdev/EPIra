@@ -1,17 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useSupabase } from '../composables/useSupabase'
-import Home from '../pages/home.vue'
-import login from '../pages/login.vue'
-import funcionarios from '../pages/funcionarios.vue'
-import cadastro_epi from '../pages/cadastro_EPI.vue'
-import cadastro_user from '../pages/cadastro_user.vue'
-import entregas from '../pages/entregas.vue'
-import relatorios from '../pages/relatorios.vue'
-import applayout from '../layouts/applayout.vue'
-import solicitar_epi from '../pages/solicitar_epi.vue'
-import minhas_solicitacoes from '../pages/minhas_solicitacoes.vue'
-import meus_epis from '../pages/meus_epis.vue'
-import aprovacoes from '../pages/aprovacoes.vue'
+
+// Rotas carregadas sob demanda (code-splitting): cada página vira um chunk
+// separado, então abrir o login não baixa o app inteiro. Isso reduz
+// drasticamente o tempo de carregamento inicial.
+const Home = () => import('../pages/home.vue')
+const login = () => import('../pages/login.vue')
+const funcionarios = () => import('../pages/funcionarios.vue')
+const cadastro_epi = () => import('../pages/cadastro_EPI.vue')
+const cadastro_user = () => import('../pages/cadastro_user.vue')
+const entregas = () => import('../pages/entregas.vue')
+const relatorios = () => import('../pages/relatorios.vue')
+const applayout = () => import('../layouts/applayout.vue')
+const solicitar_epi = () => import('../pages/solicitar_epi.vue')
+const minhas_solicitacoes = () => import('../pages/minhas_solicitacoes.vue')
+const meus_epis = () => import('../pages/meus_epis.vue')
+const aprovacoes = () => import('../pages/aprovacoes.vue')
 
 const routes = [
   { path: '/', component: Home },
