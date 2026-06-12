@@ -220,7 +220,7 @@ function irParaMinhas() {
   color: var(--ink); padding: 32px 24px 60px; min-height: 100vh; background: var(--surface);
 }
 .page-header { margin-bottom: 28px; }
-h1 { font-size: clamp(22px,3vw,32px); font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 8px; }
+h1 { font-size: clamp(22px,3vw,32px); font-weight: 800; color: var(--ink); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 8px; }
 h1 span { color: var(--blue-mid); }
 .subtitle { font-size: 14px; color: var(--ink-soft); font-weight: 300; }
 
