@@ -49,6 +49,12 @@
             <span class="icon-box"><i class="fas fa-chart-bar"></i></span>
             <span>Relatórios</span>
           </RouterLink>
+
+          <RouterLink to="/applayout/meus-epis" class="menu-item" active-class="active">
+            <span class="icon-box"><i class="fas fa-helmet-safety"></i></span>
+            <span>Meus EPIs</span>
+            <span v-if="alertCount" class="menu-badge">{{ alertCount }}</span>
+          </RouterLink>
         </template>
 
         <!-- FUNCIONÁRIO -->
@@ -90,9 +96,9 @@
     </aside>
 
     <main class="conteudo">
-      <!-- Notificação global de validade (apenas funcionário) -->
+      <!-- Notificação global de validade dos EPIs em posse do usuário -->
       <RouterLink
-        v-if="!isAdm && alertCount && $route.path !== '/applayout/meus-epis'"
+        v-if="alertCount && $route.path !== '/applayout/meus-epis'"
         to="/applayout/meus-epis"
         class="global-alert"
         :class="temVencido ? 'ga-danger' : 'ga-warn'"
@@ -137,7 +143,7 @@ async function carregarAlertas() {
     const perfilId = profile.value?.id ?? null;
     if (perfilId === perfilCarregado) return;
     perfilCarregado = perfilId;
-    if (isAdm.value || !profile.value?.id) {
+    if (!profile.value?.id) {
       episEmPosse.value = [];
       return;
     }

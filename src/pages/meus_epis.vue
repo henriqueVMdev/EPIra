@@ -36,6 +36,9 @@
           <h2>Equipamentos em Posse</h2>
           <p>{{ epis.length }} ite{{ epis.length === 1 ? 'm' : 'ns' }}</p>
         </div>
+        <button v-if="isAdm" class="btn btn-primary" @click="abrirRetirada">
+          <i class="fas fa-hand-holding-medical"></i> Registrar Retirada
+        </button>
         <button class="btn btn-ghost" @click="carregar" :disabled="loading">
           <span v-if="loading" class="spinner"></span>
           <i v-else class="fas fa-sync-alt"></i> Atualizar
@@ -77,15 +80,90 @@
     </div>
 
     <div v-if="apiError" class="api-error"><i class="fas fa-exclamation-triangle"></i> {{ apiError }}</div>
+
+    <!-- Modal de retirada própria (apenas ADM) -->
+    <Transition name="fade">
+      <div v-if="showRetirada" class="modal-overlay" @click="fecharRetirada">
+        <div class="retirada-modal" @click.stop>
+          <div class="retirada-header">
+            <div class="retirada-header-icon"><i class="fas fa-hand-holding-medical"></i></div>
+            <div class="retirada-title">
+              <h3>Registrar Retirada</h3>
+              <p>Retirada de EPI para você mesmo ({{ profile?.nome || profile?.email }})</p>
+            </div>
+            <button class="modal-close-btn" @click="fecharRetirada">✕</button>
+          </div>
+
+          <div class="retirada-body">
+            <div class="field" :class="{ invalid: retErrors.epi_id }">
+              <label>EPI <span class="required">*</span></label>
+              <div class="select-wrap">
+                <select v-model="retForm.epi_id" :disabled="loadingEpisDisp" @change="retErrors.epi_id = ''">
+                  <option value="">
+                    {{ loadingEpisDisp ? 'Carregando...' : 'Selecionar EPI...' }}
+                  </option>
+                  <option v-for="e in episDisponiveis" :key="e.id" :value="e.id" :disabled="!e.quantidade">
+                    {{ e.nome }}{{ e.ca ? ' — CA ' + e.ca : '' }} ({{ e.quantidade ?? 0 }} em estoque)
+                  </option>
+                </select>
+              </div>
+              <span class="field-error">{{ retErrors.epi_id }}</span>
+            </div>
+
+            <div class="field" style="margin-top:14px" :class="{ invalid: retErrors.quantidade }">
+              <label>Quantidade <span class="required">*</span></label>
+              <div class="qty-wrap">
+                <button type="button" class="qty-btn" @click="retForm.quantidade > 1 && retForm.quantidade--">−</button>
+                <input type="number" v-model.number="retForm.quantidade" min="1" max="999" @input="retErrors.quantidade = ''" />
+                <button type="button" class="qty-btn" @click="retForm.quantidade < 999 && retForm.quantidade++">+</button>
+              </div>
+              <span class="field-error">{{ retErrors.quantidade }}</span>
+            </div>
+
+            <div class="field" style="margin-top:14px">
+              <label>Observações</label>
+              <textarea v-model="retForm.observacoes" placeholder="Detalhes adicionais (opcional)..."></textarea>
+            </div>
+
+            <div
+              class="signature-block"
+              :class="{ checked: retForm.assinatura }"
+              @click="retForm.assinatura = !retForm.assinatura; retErrors.assinatura = ''"
+            >
+              <div class="sig-checkbox"><span class="sig-checkmark">✓</span></div>
+              <div class="sig-text">
+                <div class="sig-title">{{ retForm.assinatura ? '✓ Assinatura Digital Confirmada' : 'Assinatura Digital Confirmada' }}</div>
+                <div class="sig-desc">Confirmo que retirei o(s) EPI(s) acima em perfeito estado e me comprometo a utilizá-lo(s) sempre que necessário.</div>
+              </div>
+              <div class="sig-icon">✍️</div>
+            </div>
+            <span v-if="retErrors.assinatura" class="field-error" style="display:block;margin-top:6px">{{ retErrors.assinatura }}</span>
+
+            <div v-if="retError" class="api-error" style="margin-top:12px">
+              <i class="fas fa-exclamation-triangle"></i> {{ retError }}
+            </div>
+          </div>
+
+          <div class="retirada-footer">
+            <button class="btn btn-ghost" @click="fecharRetirada">Cancelar</button>
+            <button class="btn btn-primary" @click="registrarRetirada" :disabled="retSubmitting">
+              <span v-if="retSubmitting" class="spinner"></span>
+              <i v-else class="fas fa-check"></i>
+              {{ retSubmitting ? 'Registrando...' : 'Confirmar Retirada' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useSupabase } from '@/composables/useSupabase'
 import { fetchEpisEmPosse, isAlerta, isVencido } from '@/composables/useEpiPossession'
 
-const { profile, currentProfile } = useSupabase()
+const { supabase, profile, isAdm, currentProfile } = useSupabase()
 
 const epis     = ref([])
 const loading  = ref(false)
@@ -129,6 +207,77 @@ const badgeClass = (s) => ({
   ok: 'badge-ok',
   sem_validade: 'badge-neutral',
 }[s] || 'badge-neutral')
+
+// ─── Retirada própria (apenas ADM) ─────────────────────────────────────────
+// O admin registra uma movimentação de "entrega" para si mesmo; o trigger
+// trg_mov_estoque no banco desconta o estoque e valida quantidade insuficiente.
+
+const showRetirada   = ref(false)
+const retSubmitting  = ref(false)
+const retError       = ref('')
+const episDisponiveis = ref([])
+const loadingEpisDisp = ref(false)
+
+const retForm   = reactive({ epi_id: '', quantidade: 1, observacoes: '', assinatura: false })
+const retErrors = reactive({ epi_id: '', quantidade: '', assinatura: '' })
+
+async function abrirRetirada() {
+  Object.assign(retForm, { epi_id: '', quantidade: 1, observacoes: '', assinatura: false })
+  Object.keys(retErrors).forEach(k => (retErrors[k] = ''))
+  retError.value = ''
+  showRetirada.value = true
+
+  loadingEpisDisp.value = true
+  try {
+    const { data, error } = await supabase
+      .from('epis')
+      .select('id, nome, ca, quantidade')
+      .order('nome')
+    if (error) throw error
+    episDisponiveis.value = data ?? []
+  } catch (e) {
+    retError.value = 'Erro ao carregar EPIs: ' + e.message
+  } finally {
+    loadingEpisDisp.value = false
+  }
+}
+
+function fecharRetirada() {
+  showRetirada.value = false
+}
+
+async function registrarRetirada() {
+  retError.value = ''
+  let ok = true
+  if (!retForm.epi_id)                          { retErrors.epi_id = 'Selecione um EPI.'; ok = false }
+  if (!retForm.quantidade || retForm.quantidade < 1) { retErrors.quantidade = 'Informe a quantidade.'; ok = false }
+  if (!retForm.assinatura)                      { retErrors.assinatura = 'É necessário confirmar a assinatura digital.'; ok = false }
+  if (!ok) return
+
+  retSubmitting.value = true
+  try {
+    await currentProfile()
+    const { error } = await supabase.from('movimentacoes').insert([{
+      funcionario:           profile.value?.nome || profile.value?.email,
+      profile_id:            profile.value?.id,
+      tipo:                  'entrega',
+      epi_id:                retForm.epi_id,
+      quantidade:            retForm.quantidade,
+      data:                  new Date().toISOString().split('T')[0],
+      observacoes:           retForm.observacoes.trim()
+        ? 'Retirada própria (administrador) — ' + retForm.observacoes.trim()
+        : 'Retirada própria (administrador)',
+      assinatura_confirmada: true,
+    }])
+    if (error) throw error
+    showRetirada.value = false
+    await carregar()
+  } catch (e) {
+    retError.value = 'Erro ao registrar retirada: ' + e.message
+  } finally {
+    retSubmitting.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -231,4 +380,135 @@ td strong { color: var(--ink); font-weight: 600; }
 }
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes popIn { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: scale(1); } }
+
+/* ── Botão primário (Registrar Retirada / Confirmar) ────────────────────── */
+.btn-primary {
+  background: var(--blue);
+  color: white;
+  box-shadow: 0 4px 12px rgba(30,58,138,0.4);
+}
+.btn-primary:hover:not(:disabled) { background: #1e40af; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Modal de Retirada ──────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100;
+  display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+}
+.fade-enter-active, .fade-leave-active { transition: opacity 0.25s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+.retirada-modal {
+  background: #161B27; border: 1.5px solid var(--border); border-radius: 16px;
+  width: 90%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+  animation: popIn 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+.retirada-header {
+  background: #0F172A; padding: 16px 20px; display: flex; align-items: center;
+  gap: 12px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1;
+}
+.retirada-header-icon {
+  width: 36px; height: 36px; background: var(--blue); border-radius: 8px;
+  display: grid; place-items: center; font-size: 14px; color: #fff; flex-shrink: 0;
+}
+.retirada-title { flex: 1; }
+.retirada-title h3 { font-size: 15px; font-weight: 700; color: #fff; margin: 0; }
+.retirada-title p  { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+.modal-close-btn {
+  width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+  background: transparent; color: var(--ink-soft); font-size: 13px; cursor: pointer;
+  display: grid; place-items: center; transition: all 0.15s; flex-shrink: 0;
+}
+.modal-close-btn:hover { background: rgba(239,68,68,0.1); border-color: var(--red); color: var(--red); }
+
+.retirada-body { padding: 20px; }
+.retirada-footer {
+  background: var(--surface-2); border-top: 1px solid var(--border);
+  padding: 14px 20px; display: flex; justify-content: flex-end; gap: 10px;
+  position: sticky; bottom: 0;
+}
+
+/* ── Campos do modal ────────────────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field label { font-size: 12px; font-weight: 500; color: var(--ink-mid); }
+.required { color: var(--blue-mid); margin-left: 2px; }
+
+.select-wrap { position: relative; }
+.select-wrap::after {
+  content: '▾'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--ink-soft); font-size: 12px; pointer-events: none;
+}
+.retirada-body select,
+.retirada-body input[type="number"] {
+  width: 100%; height: 42px; padding: 0 13px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-family: inherit; font-size: 14px; color: var(--ink);
+  background: var(--surface-2); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none; -moz-appearance: none; appearance: none; box-sizing: border-box;
+}
+.retirada-body select { cursor: pointer; padding-right: 32px; }
+.retirada-body select option { background: #1e293b; color: var(--ink); }
+.retirada-body select:focus,
+.retirada-body input:focus,
+.retirada-body textarea:focus {
+  border-color: var(--blue-mid); box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
+.retirada-body select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.qty-wrap {
+  display: flex; align-items: center; border: 1.5px solid var(--border);
+  border-radius: 8px; overflow: hidden; background: var(--surface-2);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.qty-wrap:focus-within { border-color: var(--blue-mid); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+.qty-btn {
+  width: 38px; height: 40px; display: grid; place-items: center; background: none;
+  border: none; font-size: 18px; color: var(--ink-soft); cursor: pointer;
+  transition: background 0.15s, color 0.15s; flex-shrink: 0;
+}
+.qty-btn:hover { background: rgba(30,58,138,0.13); color: var(--blue-mid); }
+.qty-wrap input {
+  flex: 1; height: 40px; border: none !important; border-radius: 0; background: transparent;
+  text-align: center; font-weight: 500; padding: 0; box-shadow: none !important;
+}
+.qty-wrap input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.qty-wrap input[type="number"]::-webkit-outer-spin-button,
+.qty-wrap input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; }
+
+.retirada-body textarea {
+  width: 100%; min-height: 64px; padding: 11px 13px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-family: inherit; font-size: 14px; color: var(--ink);
+  background: var(--surface-2); outline: none; resize: vertical; line-height: 1.5;
+  transition: border-color 0.2s, box-shadow 0.2s; box-sizing: border-box;
+}
+
+.field-error { font-size: 11px; color: var(--red); display: none; }
+.invalid select, .invalid input { border-color: var(--red) !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.15) !important; }
+.invalid .field-error { display: block; }
+
+/* ── Assinatura ─────────────────────────────────────────────────────────── */
+.signature-block {
+  margin-top: 16px; background: var(--surface-2); border: 1.5px solid rgba(30,58,138,0.35);
+  border-radius: 10px; padding: 16px; display: flex; align-items: flex-start; gap: 14px;
+  cursor: pointer; transition: background 0.2s, border-color 0.2s; user-select: none;
+}
+.signature-block:hover { background: rgba(30,58,138,0.13); border-color: var(--blue-mid); }
+.signature-block.checked { background: rgba(20,83,45,0.35); border-color: var(--green); }
+.sig-checkbox {
+  width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 6px;
+  display: grid; place-items: center; flex-shrink: 0; margin-top: 2px;
+  transition: background 0.2s, border-color 0.2s; background: var(--surface-2);
+}
+.signature-block.checked .sig-checkbox { background: var(--green); border-color: var(--green); }
+.sig-checkmark {
+  color: white; font-size: 13px; font-weight: 700; opacity: 0; transform: scale(0.5);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.signature-block.checked .sig-checkmark { opacity: 1; transform: scale(1); }
+.sig-text { flex: 1; }
+.sig-title { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.signature-block.checked .sig-title { color: var(--green); }
+.sig-desc { font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+.sig-icon { font-size: 24px; flex-shrink: 0; opacity: 0.7; }
 </style>
